@@ -4,10 +4,6 @@
 
 package d2d
 
-import (
-	"github.com/AllenDang/w32"
-)
-
 func RenderTargetProperties() *D2D1_RENDER_TARGET_PROPERTIES {
 	return &D2D1_RENDER_TARGET_PROPERTIES {
 		Type : D2D1_RENDER_TARGET_TYPE_DEFAULT,
@@ -26,7 +22,7 @@ func PixelFormat() *D2D1_PIXEL_FORMAT {
 	}
 }
 
-func HwndRenderTargetProperties(hwnd w32.HWND) *D2D1_HWND_RENDER_TARGET_PROPERTIES {
+func HwndRenderTargetProperties(hwnd uintptr) *D2D1_HWND_RENDER_TARGET_PROPERTIES {
 	return &D2D1_HWND_RENDER_TARGET_PROPERTIES {
 		Hwnd : hwnd,
 		PixelSize : D2D1_SIZE_U{0, 0},

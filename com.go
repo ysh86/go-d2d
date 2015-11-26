@@ -6,12 +6,16 @@ package d2d
 
 import (
 	"fmt"
-	"github.com/AllenDang/w32"
 	"syscall"
 	"unsafe"
 )
 
-type GUID w32.GUID
+type GUID struct {
+    Data1 uint32
+    Data2 uint16
+    Data3 uint16
+    Data4 [8]byte
+}
 
 type ComObjectPtr interface {
 	GUID() *GUID

@@ -4,10 +4,6 @@
 
 package d2d
 
-import (
-	"github.com/AllenDang/w32"
-)
-
 type D2D1_FACTORY_OPTIONS struct {
 	DebugLevel D2D1_DEBUG_LEVEL
 }
@@ -118,7 +114,7 @@ type D2D1_RENDER_TARGET_PROPERTIES struct {
 }
 
 type D2D1_HWND_RENDER_TARGET_PROPERTIES struct {
-	Hwnd           w32.HWND
+	Hwnd           uintptr
 	PixelSize      D2D1_SIZE_U
 	PresentOptions D2D1_PRESENT_OPTIONS
 }
