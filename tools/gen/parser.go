@@ -265,7 +265,7 @@ func (im InterfaceMethod) SyscallFunc() string {
 	if s <= 3 {
 		return "Syscall"
 	}
-	return fmt.Sprintf("Syscall%d", s + im.ParamsPaddingSize())
+	return fmt.Sprintf("Syscall%d", s+im.ParamsPaddingSize())
 }
 
 func (im InterfaceMethod) ParamsPadding() []string {
@@ -278,10 +278,77 @@ func (im InterfaceMethod) ParamsPadding() []string {
 
 func (im InterfaceMethod) ParamsPaddingSize() int {
 	s := im.ParamsSize()
-	if s % 3 == 0 {
+	if s%3 == 0 {
 		return 0
 	}
 	return 3 - (s % 3)
+}
+
+func (im InterfaceMethod) InParams() []Param {
+	Params := make([]Param, 0, im.ParamsSize())
+
+	skipNext := false
+	for i, p := range im.Params {
+		if !skipNext {
+			if p.IsIn || p.IsArray {
+				if !p.IsArray {
+					p.Type.Name = p.Type.Asterisk() + p.Type.Name + ","
+				} else {
+					p.Type.Name = "[]" + p.Type.AsteriskMinus() + p.Type.Name + ","
+					skipNext = true
+				}
+				Params = append(Params, p)
+			}
+		} else {
+			im.Params[i].IsCounter = true
+			im.Params[i].ArrayName = Params[len(Params)-1].Name
+			im.Params[i-1].CounterName = p.Name
+			skipNext = false
+		}
+	}
+
+	if len(Params) > 0 {
+		t := Params[len(Params)-1].Type
+		t.Name = strings.TrimRight(t.Name, ",")
+		Params[len(Params)-1].Type.Name = t.Name
+	}
+
+	return Params
+}
+
+func (im InterfaceMethod) OutParams() []Param {
+	Params := make([]Param, 0, im.ParamsSize())
+
+	for _, p := range im.Params {
+		if !p.IsIn && p.IsOut && !p.IsArray {
+			p.Type.Name = p.Type.AsteriskMinus() + p.Type.Name + ","
+			Params = append(Params, p)
+		}
+	}
+
+	return Params
+}
+
+func (im InterfaceMethod) ReturnValues() []Param {
+	ReturnValues := im.OutParams()
+
+	if im.ResultType.Name != "void" {
+		if im.ResultType.Name == "HRESULT" {
+			ReturnValues = append(ReturnValues, Param{Name: "err", Type: Type{Name: "error)"}})
+		} else {
+			t := im.ResultType
+			t.Name = t.Asterisk() + t.Name + ")"
+			ReturnValues = append(ReturnValues, Param{Name: "result", Type: t})
+		}
+	} else {
+		if len(ReturnValues) > 0 {
+			t := ReturnValues[len(ReturnValues)-1].Type
+			t.Name = strings.TrimRight(t.Name, ",") + ")"
+			ReturnValues[len(ReturnValues)-1].Type.Name = t.Name
+		}
+	}
+
+	return ReturnValues
 }
 
 type Type struct {
@@ -294,6 +361,26 @@ func (t Type) TypeEq(ty string) bool {
 	return t.Name == ty
 }
 
+func (t Type) Asterisk() string {
+	if t.IsPointerPointer {
+		return "**"
+	}
+	if t.IsPointer {
+		return "*"
+	}
+	return ""
+}
+
+func (t Type) AsteriskMinus() string {
+	if t.IsPointerPointer {
+		return "*"
+	}
+	if t.IsPointer {
+		return ""
+	}
+	return ""
+}
+
 type Param struct {
 	Name       string
 	Type       Type
@@ -303,51 +390,67 @@ type Param struct {
 	IsIn       bool
 	IsOut      bool
 	Oops       string
+
+	IsCounter   bool
+	ArrayName   string
+	CounterName string
 }
 
-var interfaceTempl = template.Must(template.New("interface").Parse(`
+func (p Param) NameForAPI() string {
+	if p.IsArray {
+		return "&(" + p.Name + "[0])"
+	}
+	if p.IsCounter {
+		return "len(" + p.ArrayName + ")"
+	}
+	if !p.IsIn && p.IsOut {
+		return "&" + p.Name
+	}
+	return p.Name
+}
+
+var interfaceTempl = template.Must(template.New("interface").Parse(`// +build windows
+
+package d2d
+
+import (
+	"errors"
+	"fmt"
+	"syscall"
+	"unsafe"
+)
+
 // {{.Guid}}
 var IID_{{.Name}} = GUID{ {{.ConvertedGuid}} }
 
 type {{.Name}}Vtbl struct {
 	{{.Parent}}Vtbl
-{{range .Methods}}	p{{.Name}} uintptr
+{{range .Methods}}	{{.Name}} uintptr
 {{end}}}
 
 type {{.Name}} struct {
-	*{{.Name}}Vtbl
+	vtbl *{{.Name}}Vtbl
 }
 
-type {{.Name}}Ptr struct {
-	*{{.Name}}
-}
-
-func (this {{.Name}}Ptr) GUID() *GUID {
+func (obj *{{.Name}}) GUID() *GUID {
 	return &IID_{{.Name}}
 }
-
-func (this {{.Name}}Ptr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.{{.Name}}))
-}
-
-func (this *{{.Name}}Ptr) SetRawPtr(raw uintptr) {
-	this.{{.Name}} = (*{{.Name}})(unsafe.Pointer(raw))
-}
 {{$n := .Name}}{{range .Methods}}
-func (this *{{$n}}Vtbl) {{.Name}}(
-	ptr ComObjectPtr{{range .Params}},
-	{{.Name}} {{if .Type.IsPointerPointer}}**{{else}}{{if .Type.IsPointer}}*{{end}}{{end}}{{.Type.Name}}{{end}}){{if .ResultType.TypeEq "void" | not}}
-	({{if .ResultType.IsPointerPointer}}**{{else}}{{if .ResultType.IsPointer}}*{{end}}{{end}}{{.ResultType.Name}}){{end}} {
-	var {{if .ResultType.TypeEq "HRESULT"}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
-		this.p{{.Name}},
+func (obj *{{$n}}) {{.Name}}({{range .InParams}}
+	{{.Name}} {{.Type.Name}}{{end}}){{if len .ReturnValues}} ({{end}}{{range .ReturnValues}}
+	{{.Name}} {{.Type.Name}}{{end}} {
+	var {{if .ResultType.TypeEq "void" | not}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
+		obj.vtbl.{{.Name}},
 		{{.ParamsSize}},
-		ptr.RawPtr(){{range .Params}},
-		uintptr({{if .Type.IsPointer}}unsafe.Pointer({{.Name}}){{else}}{{.Name}}{{end}}){{end}}{{range .ParamsPadding}},
+		uintptr(unsafe.Pointer(obj)){{range .Params}},
+		uintptr({{if .Type.IsPointer}}unsafe.Pointer({{.NameForAPI}}){{else}}{{.NameForAPI}}{{end}}){{end}}{{range .ParamsPadding}},
 		{{.}}{{end}})
-	{{if .ResultType.TypeEq "HRESULT"}}if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call {{.Name}}: %#x", ret))
-	}{{end}}
-	return
+{{if .ResultType.TypeEq "HRESULT"}}	if ret != S_OK {
+		err = fmt.Errorf("Fail to call {{.Name}}: %#x", ret)
+	}
+{{end}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}
+	result = ret
+{{end}}	return
 }
 {{end}}
 `))
