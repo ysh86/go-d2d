@@ -435,6 +435,14 @@ type {{.Name}} struct {
 func (obj *{{.Name}}) GUID() *GUID {
 	return &IID_{{.Name}}
 }
+
+func (obj *{{.Name}}) Unk() *IUnknown {
+	return (*IUnknown)(unsafe.Pointer(obj))
+}
+
+func (obj *{{.Name}}) Parent() *{{.Parent}} {
+	return (*{{.Parent}})(unsafe.Pointer(obj))
+}
 {{$n := .Name}}{{range .Methods}}
 func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 	{{.Name}} {{.Type.Name}}{{end}}){{if len .ReturnValues}} ({{end}}{{range .ReturnValues}}
