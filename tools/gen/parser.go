@@ -28,6 +28,7 @@ const (
 var cTypeToGoType = map[string]string{
 	"FLOAT":  "float32",
 	"UINT32": "uint32",
+	"BOOL":   "bool",
 }
 
 func CreateCHeaderLexer() RegexpLexer {
@@ -467,9 +468,9 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 {{if .ResultType.TypeEq "HRESULT"}}	if ret != S_OK {
 		err = fmt.Errorf("Fail to call {{.Name}}: %#x", ret)
 	}
-{{end}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}
-	result = ret
-{{end}}	return
+{{end}}{{if .ResultType.TypeEq "float32"}}	result = *(*{{.ResultType.Name}})(unsafe.Pointer(&ret))
+{{else}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	result = ({{.ResultType.Asterisk}}{{.ResultType.Name}})(ret)
+{{end}}{{end}}	return
 }
 {{end}}
 `))
