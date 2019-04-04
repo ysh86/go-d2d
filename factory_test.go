@@ -15,31 +15,34 @@ func TestCreateFactory(t *testing.T) {
 	if err != nil || f == nil {
 		t.Errorf("Factory is nil")
 	}
-	defer f.Unk().Release()
+	defer f.Release()
 
-	i, err := f.Unk().QueryInterface(&IID_IUnknown)
-	if err != nil || i == nil {
+	p, err := f.QueryInterface(&IID_IUnknown)
+	if err != nil || p == nil {
 		t.Errorf("IUnknown is nil")
 	}
-	unk := (*IUnknown)(i)
+	unk := (*IUnknown)(p)
 	defer unk.Release()
 
-	ii, err := f.Unk().QueryInterface(&IID_ID2D1Factory)
-	if err != nil || ii == nil {
+	pp, err := f.QueryInterface(&IID_ID2D1Factory)
+	if err != nil || pp == nil {
 		t.Errorf("ID2D1Factory is nil")
 	}
-	ff := (*ID2D1Factory)(ii)
-	defer ff.Unk().Release()
+	ff := (*ID2D1Factory)(pp)
+	defer ff.Release()
 
-	iii, err := f.Parent().QueryInterface(&IID_ID2D1GeometrySink)
-	if err == nil || iii != nil {
+	ppp, err := f.Parent().QueryInterface(&IID_ID2D1GeometrySink)
+	if err == nil || ppp != nil {
 		t.Errorf("ID2D1GeometrySink is NOT nil")
 	}
+	fff := ff
+	fff.AddRef()
+	defer fff.Release()
 }
 
 func TestGetDesktopDpi(t *testing.T) {
 	f, _ := D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
-	defer f.Unk().Release()
+	defer f.Release()
 	x, y := f.GetDesktopDpi()
 	if x == 0 || y == 0 {
 		t.Errorf("Dpi is zero: %f, %f", x, y)
@@ -49,7 +52,7 @@ func TestGetDesktopDpi(t *testing.T) {
 
 func TestReloadSystemMetrics(t *testing.T) {
 	f, _ := D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
-	defer f.Unk().Release()
+	defer f.Release()
 	err := f.ReloadSystemMetrics()
 	if err != nil {
 		t.Errorf("ReloadSystemMetrics() returns error")

@@ -23,8 +23,19 @@ func (obj *ID2D1Resource) GUID() *GUID {
 	return &IID_ID2D1Resource
 }
 
-func (obj *ID2D1Resource) Unk() *IUnknown {
-	return (*IUnknown)(unsafe.Pointer(obj))
+func (obj *ID2D1Resource) QueryInterface(
+	riid *GUID) (
+	dest unsafe.Pointer,
+	err error) {
+	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
+}
+
+func (obj *ID2D1Resource) AddRef() uint32 {
+	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
+}
+
+func (obj *ID2D1Resource) Release() uint32 {
+	return (*IUnknown)(unsafe.Pointer(obj)).Release()
 }
 
 func (obj *ID2D1Resource) Parent() *IUnknown {

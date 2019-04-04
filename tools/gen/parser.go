@@ -436,8 +436,19 @@ func (obj *{{.Name}}) GUID() *GUID {
 	return &IID_{{.Name}}
 }
 
-func (obj *{{.Name}}) Unk() *IUnknown {
-	return (*IUnknown)(unsafe.Pointer(obj))
+func (obj *{{.Name}}) QueryInterface(
+	riid *GUID) (
+	dest unsafe.Pointer,
+	err error) {
+	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
+}
+
+func (obj *{{.Name}}) AddRef() uint32 {
+	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
+}
+
+func (obj *{{.Name}}) Release() uint32 {
+	return (*IUnknown)(unsafe.Pointer(obj)).Release()
 }
 
 func (obj *{{.Name}}) Parent() *{{.Parent}} {

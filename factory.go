@@ -37,8 +37,19 @@ func (obj *ID2D1Factory) GUID() *GUID {
 	return &IID_ID2D1Factory
 }
 
-func (obj *ID2D1Factory) Unk() *IUnknown {
-	return (*IUnknown)(unsafe.Pointer(obj))
+func (obj *ID2D1Factory) QueryInterface(
+	riid *GUID) (
+	dest unsafe.Pointer,
+	err error) {
+	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
+}
+
+func (obj *ID2D1Factory) AddRef() uint32 {
+	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
+}
+
+func (obj *ID2D1Factory) Release() uint32 {
+	return (*IUnknown)(unsafe.Pointer(obj)).Release()
 }
 
 func (obj *ID2D1Factory) Parent() *IUnknown {
