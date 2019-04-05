@@ -407,6 +407,9 @@ func (p Param) NameForAPI() string {
 	if !p.IsIn && p.IsOut {
 		return "&" + p.Name
 	}
+	if p.Type.Name == "float32" && !p.Type.IsPointer && !p.Type.IsPointerPointer {
+		return "*(*uint32)(unsafe.Pointer(&" + p.Name + "))"
+	}
 	return p.Name
 }
 
@@ -430,37 +433,18 @@ type {{.Name}}Vtbl struct {
 {{end}}}
 
 type {{.Name}} struct {
-	vtbl *{{.Name}}Vtbl
+	{{.Parent}}
 }
 
-func (obj *{{.Name}}) GUID() *GUID {
-	return &IID_{{.Name}}
-}
-
-func (obj *{{.Name}}) QueryInterface(
-	riid *GUID) (
-	dest unsafe.Pointer,
-	err error) {
-	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
-}
-
-func (obj *{{.Name}}) AddRef() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
-}
-
-func (obj *{{.Name}}) Release() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).Release()
-}
-
-func (obj *{{.Name}}) Parent() *{{.Parent}} {
-	return (*{{.Parent}})(unsafe.Pointer(obj))
+func (obj *{{.Name}}) vtbl() *{{.Name}}Vtbl {
+	return (*{{.Name}}Vtbl)(obj.unsafeVtbl)
 }
 {{$n := .Name}}{{range .Methods}}
 func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 	{{.Name}} {{.Type.Name}}{{end}}){{if len .ReturnValues}} ({{end}}{{range .ReturnValues}}
 	{{.Name}} {{.Type.Name}}{{end}} {
 	var {{if .ResultType.TypeEq "void" | not}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
-		obj.vtbl.{{.Name}},
+		obj.vtbl().{{.Name}},
 		{{.ParamsSize}},
 		uintptr(unsafe.Pointer(obj)){{range .Params}},
 		uintptr({{if .Type.IsPointer}}unsafe.Pointer({{.NameForAPI}}){{else}}{{.NameForAPI}}{{end}}){{end}}{{range .ParamsPadding}},
@@ -468,7 +452,8 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 {{if .ResultType.TypeEq "HRESULT"}}	if ret != S_OK {
 		err = fmt.Errorf("Fail to call {{.Name}}: %#x", ret)
 	}
-{{end}}{{if .ResultType.TypeEq "float32"}}	result = *(*{{.ResultType.Name}})(unsafe.Pointer(&ret))
+{{end}}{{if .ResultType.TypeEq "float32"}}	ret32 := uint32(ret)
+	result = *(*{{.ResultType.Name}})(unsafe.Pointer(&ret32))
 {{else}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	result = ({{.ResultType.Asterisk}}{{.ResultType.Name}})(ret)
 {{end}}{{end}}	return
 }

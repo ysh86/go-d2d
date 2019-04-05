@@ -40,22 +40,27 @@ type IUnknownVtbl struct {
 }
 
 type IUnknown struct {
-	vtbl *IUnknownVtbl
+	unsafeVtbl unsafe.Pointer
 }
 
+// TODO: いらない
 func (obj *IUnknown) GUID() *GUID {
 	return &IID_IUnknown
 }
 
+func (obj *IUnknown) vtbl() *IUnknownVtbl {
+	return (*IUnknownVtbl)(obj.unsafeVtbl)
+}
+
 func (obj *IUnknown) QueryInterface(
-	riid *GUID) (
+	iid *GUID) (
 	dest unsafe.Pointer,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.QueryInterface,
+		obj.vtbl().QueryInterface,
 		3,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(riid)),
+		uintptr(unsafe.Pointer(iid)),
 		uintptr(unsafe.Pointer(&dest)))
 	if ret != S_OK {
 		err = fmt.Errorf("Query interface error: %#x", ret)
@@ -65,7 +70,7 @@ func (obj *IUnknown) QueryInterface(
 
 func (obj *IUnknown) AddRef() uint32 {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.AddRef,
+		obj.vtbl().AddRef,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -75,7 +80,7 @@ func (obj *IUnknown) AddRef() uint32 {
 
 func (obj *IUnknown) Release() uint32 {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.Release,
+		obj.vtbl().Release,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,

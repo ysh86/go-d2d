@@ -31,7 +31,7 @@ func TestCreateFactory(t *testing.T) {
 	ff := (*ID2D1Factory)(pp)
 	defer ff.Release()
 
-	ppp, err := f.Parent().QueryInterface(&IID_ID2D1GeometrySink)
+	ppp, err := f.QueryInterface(&IID_ID2D1GeometrySink)
 	if err == nil || ppp != nil {
 		t.Errorf("ID2D1GeometrySink is NOT nil")
 	}
