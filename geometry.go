@@ -1,6 +1,4 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// +build windows
 
 package d2d
 
@@ -15,303 +13,302 @@ var IID_ID2D1Geometry = GUID{0x2cd906a1, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x0
 
 type ID2D1GeometryVtbl struct {
 	ID2D1ResourceVtbl
-	pGetBounds            uintptr
-	pGetWidenedBounds     uintptr
-	pStrokeContainsPoint  uintptr
-	pFillContainsPoint    uintptr
-	pCompareWithGeometry  uintptr
-	pSimplify             uintptr
-	pTessellate           uintptr
-	pCombineWithGeometry  uintptr
-	pOutline              uintptr
-	pComputeArea          uintptr
-	pComputeLength        uintptr
-	pComputePointAtLength uintptr
-	pWiden                uintptr
+	GetBounds            uintptr
+	GetWidenedBounds     uintptr
+	StrokeContainsPoint  uintptr
+	FillContainsPoint    uintptr
+	CompareWithGeometry  uintptr
+	Simplify             uintptr
+	Tessellate           uintptr
+	CombineWithGeometry  uintptr
+	Outline              uintptr
+	ComputeArea          uintptr
+	ComputeLength        uintptr
+	ComputePointAtLength uintptr
+	Widen                uintptr
 }
 
 type ID2D1Geometry struct {
-	*ID2D1GeometryVtbl
+	ID2D1Resource
 }
 
-type ID2D1GeometryPtr struct {
-	*ID2D1Geometry
+func (obj *ID2D1Geometry) vtbl() *ID2D1GeometryVtbl {
+	return (*ID2D1GeometryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1GeometryPtr) GUID() *GUID {
-	return &IID_ID2D1Geometry
-}
-
-func (this ID2D1GeometryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1Geometry))
-}
-
-func (this *ID2D1GeometryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1Geometry = (*ID2D1Geometry)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1GeometryVtbl) GetBounds(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) GetBounds(
 	worldTransform *D2D1_MATRIX_3X2_F) (
-	bounds D2D1_RECT_F) {
+	bounds D2D1_RECT_F,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetBounds,
+		obj.vtbl().GetBounds,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(worldTransform)),
 		uintptr(unsafe.Pointer(&bounds)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call GetBounds: %#x", ret))
+		err = fmt.Errorf("Fail to call GetBounds: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) GetWidenedBounds(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) GetWidenedBounds(
 	strokeWidth float32,
 	strokeStyle *ID2D1StrokeStyle,
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32) (
-	bounds D2D1_RECT_F) {
+	bounds D2D1_RECT_F,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pGetWidenedBounds,
+		obj.vtbl().GetWidenedBounds,
 		6,
-		ptr.RawPtr(),
-		uintptr(*(*uintptr)(unsafe.Pointer(&strokeWidth))),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
 		uintptr(unsafe.Pointer(strokeStyle)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
 		uintptr(unsafe.Pointer(&bounds)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call GetWidenedBounds: %#x", ret))
+		err = fmt.Errorf("Fail to call GetWidenedBounds: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) StrokeContainsPoint(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) StrokeContainsPoint(
 	point D2D1_POINT_2F,
 	strokeWidth float32,
 	strokeStyle *ID2D1StrokeStyle,
 	worldTransform *D2D1_MATRIX_3X2_F,
-	flatteningTolerance float32) (contains bool) {
+	flatteningTolerance float32) (
+	contains bool,
+	err error) {
+	containsWinbool := 0
 	var ret, _, _ = syscall.Syscall9(
-		this.pStrokeContainsPoint,
+		obj.vtbl().StrokeContainsPoint,
 		8,
-		ptr.RawPtr(),
-		*(*uintptr)(unsafe.Pointer(&point.X)),
-		*(*uintptr)(unsafe.Pointer(&point.Y)),
-		*(*uintptr)(unsafe.Pointer(&strokeWidth)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
+		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))),
+		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
 		uintptr(unsafe.Pointer(strokeStyle)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		uintptr(unsafe.Pointer(&contains)),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(&containsWinbool)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call StrokeContainsPoint: %#x", ret))
+		err = fmt.Errorf("Fail to call StrokeContainsPoint: %#x", ret)
 	}
+	contains = (containsWinbool != 0)
 	return
 }
 
-func (this *ID2D1GeometryVtbl) FillContainsPoint(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) FillContainsPoint(
 	point D2D1_POINT_2F,
 	worldTransform *D2D1_MATRIX_3X2_F,
-	flatteningTolerance float32) (contains bool) {
+	flatteningTolerance float32) (
+	contains bool,
+	err error) {
+	containsWinbool := 0
 	var ret, _, _ = syscall.Syscall6(
-		this.pFillContainsPoint,
+		obj.vtbl().FillContainsPoint,
 		6,
-		ptr.RawPtr(),
-		*(*uintptr)(unsafe.Pointer(&point.X)),
-		*(*uintptr)(unsafe.Pointer(&point.Y)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
+		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		uintptr(unsafe.Pointer(&contains)))
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(&containsWinbool)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call FillContainsPoint: %#x", ret))
+		err = fmt.Errorf("Fail to call FillContainsPoint: %#x", ret)
 	}
+	contains = (containsWinbool != 0)
 	return
 }
 
-func (this *ID2D1GeometryVtbl) CompareWithGeometry(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) CompareWithGeometry(
 	inputGeometry *ID2D1Geometry,
 	inputGeometryTransform *D2D1_MATRIX_3X2_F,
-	flatteningTolerance float32) (relation D2D1_GEOMETRY_RELATION) {
+	flatteningTolerance float32) (
+	relation D2D1_GEOMETRY_RELATION,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCompareWithGeometry,
+		obj.vtbl().CompareWithGeometry,
 		5,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(inputGeometry)),
 		uintptr(unsafe.Pointer(inputGeometryTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
 		uintptr(unsafe.Pointer(&relation)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CompareWithGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CompareWithGeometry: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) Simplify(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) Simplify(
 	simplificationOption D2D1_GEOMETRY_SIMPLIFICATION_OPTION,
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32,
-	geometrySink ID2D1SimplifiedGeometrySinkPtr) {
+	geometrySink *ID2D1SimplifiedGeometrySink) (
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pSimplify,
+		obj.vtbl().Simplify,
 		5,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(simplificationOption),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		geometrySink.RawPtr(),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(geometrySink)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Simplify: %#x", ret))
+		err = fmt.Errorf("Fail to call Simplify: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) Tessellate(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) Tessellate(
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32,
-	tessellationSink ID2D1TessellationSinkPtr) {
+	tessellationSink *ID2D1TessellationSink) (
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pTessellate,
+		obj.vtbl().Tessellate,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		tessellationSink.RawPtr(),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(tessellationSink)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Tessellate: %#x", ret))
+		err = fmt.Errorf("Fail to call Tessellate: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) CombineWithGeometry(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) CombineWithGeometry(
 	inputGeometry *ID2D1Geometry,
 	combineMode D2D1_COMBINE_MODE,
 	inputGeometryTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32,
-	geometrySink ID2D1SimplifiedGeometrySinkPtr) {
+	geometrySink *ID2D1SimplifiedGeometrySink) (
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCombineWithGeometry,
+		obj.vtbl().CombineWithGeometry,
 		6,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(inputGeometry)),
 		uintptr(combineMode),
 		uintptr(unsafe.Pointer(inputGeometryTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		geometrySink.RawPtr())
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(geometrySink)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CombineWithGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CombineWithGeometry: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) Outline(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) Outline(
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32,
-	geometrySink ID2D1SimplifiedGeometrySinkPtr) {
+	geometrySink *ID2D1SimplifiedGeometrySink) (
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pOutline,
+		obj.vtbl().Outline,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		geometrySink.RawPtr(),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(geometrySink)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Outline: %#x", ret))
+		err = fmt.Errorf("Fail to call Outline: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) ComputeArea(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) ComputeArea(
 	worldTransform *D2D1_MATRIX_3X2_F,
-	flatteningTolerance float32) (area float32) {
+	flatteningTolerance float32) (
+	area float32,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pComputeArea,
+		obj.vtbl().ComputeArea,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
 		uintptr(unsafe.Pointer(&area)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call ComputeArea: %#x", ret))
+		err = fmt.Errorf("Fail to call ComputeArea: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) ComputeLength(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) ComputeLength(
 	worldTransform *D2D1_MATRIX_3X2_F,
-	flatteningTolerance float32) (length float32) {
+	flatteningTolerance float32) (
+	length float32,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pComputeLength,
+		obj.vtbl().ComputeLength,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
 		uintptr(unsafe.Pointer(&length)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call ComputeLength: %#x", ret))
+		err = fmt.Errorf("Fail to call ComputeLength: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) ComputePointAtLength(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) ComputePointAtLength(
 	length float32,
 	worldTransform *D2D1_MATRIX_3X2_F,
-	flatteningTolerance float32) (point D2D1_POINT_2F, unitTangentVector D2D1_POINT_2F) {
+	flatteningTolerance float32) (
+	point D2D1_POINT_2F,
+	unitTangentVector D2D1_POINT_2F,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pComputePointAtLength,
+		obj.vtbl().ComputePointAtLength,
 		6,
-		ptr.RawPtr(),
-		uintptr(length),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&length))),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
 		uintptr(unsafe.Pointer(&point)),
 		uintptr(unsafe.Pointer(&unitTangentVector)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call ComputePointAtLength: %#x", ret))
+		err = fmt.Errorf("Fail to call ComputePointAtLength: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1GeometryVtbl) Widen(
-	ptr ComObjectPtr,
+func (obj *ID2D1Geometry) Widen(
 	strokeWidth float32,
 	strokeStyle *ID2D1StrokeStyle,
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32,
-	geometrySink ID2D1SimplifiedGeometrySinkPtr) {
+	geometrySink *ID2D1SimplifiedGeometrySink) (
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pWiden,
+		obj.vtbl().Widen,
 		6,
-		ptr.RawPtr(),
-		uintptr(strokeWidth),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
 		uintptr(unsafe.Pointer(strokeStyle)),
 		uintptr(unsafe.Pointer(worldTransform)),
-		*(*uintptr)(unsafe.Pointer(&flatteningTolerance)),
-		geometrySink.RawPtr())
+		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
+		uintptr(unsafe.Pointer(geometrySink)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Widen: %#x", ret))
+		err = fmt.Errorf("Fail to call Widen: %#x", ret)
 	}
 	return
 }
@@ -321,38 +318,25 @@ var IID_ID2D1RectangleGeometry = GUID{0x2cd906a2, 0x12e2, 0x11dc, [8]byte{0x9f, 
 
 type ID2D1RectangleGeometryVtbl struct {
 	ID2D1GeometryVtbl
-	pGetRect uintptr
+	GetRect uintptr
 }
 
 type ID2D1RectangleGeometry struct {
-	*ID2D1RectangleGeometryVtbl
+	ID2D1Geometry
 }
 
-type ID2D1RectangleGeometryPtr struct {
-	*ID2D1RectangleGeometry
+func (obj *ID2D1RectangleGeometry) vtbl() *ID2D1RectangleGeometryVtbl {
+	return (*ID2D1RectangleGeometryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1RectangleGeometryPtr) GUID() *GUID {
-	return &IID_ID2D1RectangleGeometry
-}
-
-func (this ID2D1RectangleGeometryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1RectangleGeometry))
-}
-
-func (this *ID2D1RectangleGeometryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1RectangleGeometry = (*ID2D1RectangleGeometry)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1RectangleGeometryVtbl) GetRect(
-	ptr ComObjectPtr) (rect D2D1_RECT_F) {
+func (obj *ID2D1RectangleGeometry) GetRect() (
+	rect D2D1_RECT_F) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetRect,
+		obj.vtbl().GetRect,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&rect)),
 		0)
-
 	return
 }
 
@@ -361,38 +345,25 @@ var IID_ID2D1RoundedRectangleGeometry = GUID{0x2cd906a3, 0x12e2, 0x11dc, [8]byte
 
 type ID2D1RoundedRectangleGeometryVtbl struct {
 	ID2D1GeometryVtbl
-	pGetRoundedRect uintptr
+	GetRoundedRect uintptr
 }
 
 type ID2D1RoundedRectangleGeometry struct {
-	*ID2D1RoundedRectangleGeometryVtbl
+	ID2D1Geometry
 }
 
-type ID2D1RoundedRectangleGeometryPtr struct {
-	*ID2D1RoundedRectangleGeometry
+func (obj *ID2D1RoundedRectangleGeometry) vtbl() *ID2D1RoundedRectangleGeometryVtbl {
+	return (*ID2D1RoundedRectangleGeometryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1RoundedRectangleGeometryPtr) GUID() *GUID {
-	return &IID_ID2D1RoundedRectangleGeometry
-}
-
-func (this ID2D1RoundedRectangleGeometryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1RoundedRectangleGeometry))
-}
-
-func (this *ID2D1RoundedRectangleGeometryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1RoundedRectangleGeometry = (*ID2D1RoundedRectangleGeometry)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1RoundedRectangleGeometryVtbl) GetRoundedRect(
-	ptr ComObjectPtr) (roundedRect D2D1_ROUNDED_RECT) {
+func (obj *ID2D1RoundedRectangleGeometry) GetRoundedRect() (
+	roundedRect D2D1_ROUNDED_RECT) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetRoundedRect,
+		obj.vtbl().GetRoundedRect,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&roundedRect)),
 		0)
-
 	return
 }
 
@@ -401,38 +372,25 @@ var IID_ID2D1EllipseGeometry = GUID{0x2cd906a4, 0x12e2, 0x11dc, [8]byte{0x9f, 0x
 
 type ID2D1EllipseGeometryVtbl struct {
 	ID2D1GeometryVtbl
-	pGetEllipse uintptr
+	GetEllipse uintptr
 }
 
 type ID2D1EllipseGeometry struct {
-	*ID2D1EllipseGeometryVtbl
+	ID2D1Geometry
 }
 
-type ID2D1EllipseGeometryPtr struct {
-	*ID2D1EllipseGeometry
+func (obj *ID2D1EllipseGeometry) vtbl() *ID2D1EllipseGeometryVtbl {
+	return (*ID2D1EllipseGeometryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1EllipseGeometryPtr) GUID() *GUID {
-	return &IID_ID2D1EllipseGeometry
-}
-
-func (this ID2D1EllipseGeometryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1EllipseGeometry))
-}
-
-func (this *ID2D1EllipseGeometryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1EllipseGeometry = (*ID2D1EllipseGeometry)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1EllipseGeometryVtbl) GetEllipse(
-	ptr ComObjectPtr) (ellipse D2D1_ELLIPSE) {
+func (obj *ID2D1EllipseGeometry) GetEllipse() (
+	ellipse D2D1_ELLIPSE) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetEllipse,
+		obj.vtbl().GetEllipse,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&ellipse)),
 		0)
-
 	return
 }
 
@@ -441,67 +399,52 @@ var IID_ID2D1GeometryGroup = GUID{0x2cd906a6, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed
 
 type ID2D1GeometryGroupVtbl struct {
 	ID2D1GeometryVtbl
-	pGetFillMode            uintptr
-	pGetSourceGeometryCount uintptr
-	pGetSourceGeometries    uintptr
+	GetFillMode            uintptr
+	GetSourceGeometryCount uintptr
+	GetSourceGeometries    uintptr
 }
 
 type ID2D1GeometryGroup struct {
-	*ID2D1GeometryGroupVtbl
+	ID2D1Geometry
 }
 
-type ID2D1GeometryGroupPtr struct {
-	*ID2D1GeometryGroup
+func (obj *ID2D1GeometryGroup) vtbl() *ID2D1GeometryGroupVtbl {
+	return (*ID2D1GeometryGroupVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1GeometryGroupPtr) GUID() *GUID {
-	return &IID_ID2D1GeometryGroup
-}
-
-func (this ID2D1GeometryGroupPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1GeometryGroup))
-}
-
-func (this *ID2D1GeometryGroupPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1GeometryGroup = (*ID2D1GeometryGroup)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1GeometryGroupVtbl) GetFillMode(
-	ptr ComObjectPtr) D2D1_FILL_MODE {
+func (obj *ID2D1GeometryGroup) GetFillMode() (
+	result D2D1_FILL_MODE) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetFillMode,
+		obj.vtbl().GetFillMode,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-
-	return D2D1_FILL_MODE(ret)
+	result = (D2D1_FILL_MODE)(ret)
+	return
 }
 
-func (this *ID2D1GeometryGroupVtbl) GetSourceGeometryCount(
-	ptr ComObjectPtr) uint32 {
+func (obj *ID2D1GeometryGroup) GetSourceGeometryCount() (
+	result uint32) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetSourceGeometryCount,
+		obj.vtbl().GetSourceGeometryCount,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-
-	return uint32(ret)
+	result = (uint32)(ret)
+	return
 }
 
-func (this *ID2D1GeometryGroupVtbl) GetSourceGeometries(
-	ptr ComObjectPtr,
-	geometriesCount uint32) []ID2D1GeometryPtr {
-	var geometries = make([]ID2D1GeometryPtr, int(geometriesCount))
+func (obj *ID2D1GeometryGroup) GetSourceGeometries(
+	geometries []*ID2D1Geometry) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetSourceGeometries,
+		obj.vtbl().GetSourceGeometries,
 		3,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&geometries[0])),
-		uintptr(geometriesCount))
-
-	return geometries
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&(geometries[0]))),
+		uintptr(len(geometries)))
+	return
 }
 
 // 2cd906bb-12e2-11dc-9fed-001143a055f9
@@ -509,52 +452,37 @@ var IID_ID2D1TransformedGeometry = GUID{0x2cd906bb, 0x12e2, 0x11dc, [8]byte{0x9f
 
 type ID2D1TransformedGeometryVtbl struct {
 	ID2D1GeometryVtbl
-	pGetSourceGeometry uintptr
-	pGetTransform      uintptr
+	GetSourceGeometry uintptr
+	GetTransform      uintptr
 }
 
 type ID2D1TransformedGeometry struct {
-	*ID2D1TransformedGeometryVtbl
+	ID2D1Geometry
 }
 
-type ID2D1TransformedGeometryPtr struct {
-	*ID2D1TransformedGeometry
+func (obj *ID2D1TransformedGeometry) vtbl() *ID2D1TransformedGeometryVtbl {
+	return (*ID2D1TransformedGeometryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1TransformedGeometryPtr) GUID() *GUID {
-	return &IID_ID2D1TransformedGeometry
-}
-
-func (this ID2D1TransformedGeometryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1TransformedGeometry))
-}
-
-func (this *ID2D1TransformedGeometryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1TransformedGeometry = (*ID2D1TransformedGeometry)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1TransformedGeometryVtbl) GetSourceGeometry(
-	ptr ComObjectPtr) (sourceGeometry ID2D1GeometryPtr) {
-	var out uintptr
+func (obj *ID2D1TransformedGeometry) GetSourceGeometry() (
+	sourceGeometry *ID2D1Geometry) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetSourceGeometry,
+		obj.vtbl().GetSourceGeometry,
 		2,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&sourceGeometry)),
 		0)
-	(&sourceGeometry).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1TransformedGeometryVtbl) GetTransform(
-	ptr ComObjectPtr) (transform D2D1_MATRIX_3X2_F) {
+func (obj *ID2D1TransformedGeometry) GetTransform() (
+	transform D2D1_MATRIX_3X2_F) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetTransform,
+		obj.vtbl().GetTransform,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&transform)),
 		0)
-
 	return
 }
 
@@ -563,87 +491,76 @@ var IID_ID2D1PathGeometry = GUID{0x2cd906a5, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed,
 
 type ID2D1PathGeometryVtbl struct {
 	ID2D1GeometryVtbl
-	pOpen            uintptr
-	pStream          uintptr
-	pGetSegmentCount uintptr
-	pGetFigureCount  uintptr
+	Open            uintptr
+	Stream          uintptr
+	GetSegmentCount uintptr
+	GetFigureCount  uintptr
 }
 
 type ID2D1PathGeometry struct {
-	*ID2D1PathGeometryVtbl
+	ID2D1Geometry
 }
 
-type ID2D1PathGeometryPtr struct {
-	*ID2D1PathGeometry
+func (obj *ID2D1PathGeometry) vtbl() *ID2D1PathGeometryVtbl {
+	return (*ID2D1PathGeometryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1PathGeometryPtr) GUID() *GUID {
-	return &IID_ID2D1PathGeometry
-}
-
-func (this ID2D1PathGeometryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1PathGeometry))
-}
-
-func (this *ID2D1PathGeometryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1PathGeometry = (*ID2D1PathGeometry)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1PathGeometryVtbl) Open(
-	ptr ComObjectPtr) (geometrySink ID2D1GeometrySinkPtr) {
-	var out uintptr
+func (obj *ID2D1PathGeometry) Open() (
+	geometrySink *ID2D1GeometrySink,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pOpen,
+		obj.vtbl().Open,
 		2,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&geometrySink)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Open: %#x", ret))
-	}
-	(&geometrySink).SetRawPtr(out)
-	return
-}
-
-func (this *ID2D1PathGeometryVtbl) Stream(
-	ptr ComObjectPtr,
-	geometrySink ID2D1GeometrySinkPtr) {
-	var ret, _, _ = syscall.Syscall(
-		this.pStream,
-		2,
-		ptr.RawPtr(),
-		geometrySink.RawPtr(),
-		0)
-	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Stream: %#x", ret))
+		err = fmt.Errorf("Fail to call Open: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1PathGeometryVtbl) GetSegmentCount(
-	ptr ComObjectPtr) (count uint32) {
+func (obj *ID2D1PathGeometry) Stream(
+	geometrySink *ID2D1GeometrySink) (
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetSegmentCount,
+		obj.vtbl().Stream,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(geometrySink)),
+		0)
+	if ret != S_OK {
+		err = fmt.Errorf("Fail to call Stream: %#x", ret)
+	}
+	return
+}
+
+func (obj *ID2D1PathGeometry) GetSegmentCount() (
+	count uint32,
+	err error) {
+	var ret, _, _ = syscall.Syscall(
+		obj.vtbl().GetSegmentCount,
+		2,
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&count)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call GetSegmentCount: %#x", ret))
+		err = fmt.Errorf("Fail to call GetSegmentCount: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1PathGeometryVtbl) GetFigureCount(
-	ptr ComObjectPtr) (count uint32) {
+func (obj *ID2D1PathGeometry) GetFigureCount() (
+	count uint32,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetFigureCount,
+		obj.vtbl().GetFigureCount,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&count)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call GetFigureCount: %#x", ret))
+		err = fmt.Errorf("Fail to call GetFigureCount: %#x", ret)
 	}
 	return
 }
@@ -653,129 +570,103 @@ var IID_ID2D1SimplifiedGeometrySink = GUID{0x2cd9069e, 0x12e2, 0x11dc, [8]byte{0
 
 type ID2D1SimplifiedGeometrySinkVtbl struct {
 	IUnknownVtbl
-	pSetFillMode     uintptr
-	pSetSegmentFlags uintptr
-	pBeginFigure     uintptr
-	pAddLines        uintptr
-	pAddBeziers      uintptr
-	pEndFigure       uintptr
-	pClose           uintptr
+	SetFillMode     uintptr
+	SetSegmentFlags uintptr
+	BeginFigure     uintptr
+	AddLines        uintptr
+	AddBeziers      uintptr
+	EndFigure       uintptr
+	Close           uintptr
 }
 
 type ID2D1SimplifiedGeometrySink struct {
-	*ID2D1SimplifiedGeometrySinkVtbl
+	IUnknown
 }
 
-type ID2D1SimplifiedGeometrySinkPtr struct {
-	*ID2D1SimplifiedGeometrySink
+func (obj *ID2D1SimplifiedGeometrySink) vtbl() *ID2D1SimplifiedGeometrySinkVtbl {
+	return (*ID2D1SimplifiedGeometrySinkVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1SimplifiedGeometrySinkPtr) GUID() *GUID {
-	return &IID_ID2D1SimplifiedGeometrySink
-}
-
-func (this ID2D1SimplifiedGeometrySinkPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1SimplifiedGeometrySink))
-}
-
-func (this *ID2D1SimplifiedGeometrySinkPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1SimplifiedGeometrySink = (*ID2D1SimplifiedGeometrySink)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1SimplifiedGeometrySinkVtbl) SetFillMode(
-	ptr ComObjectPtr,
+func (obj *ID2D1SimplifiedGeometrySink) SetFillMode(
 	fillMode D2D1_FILL_MODE) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetFillMode,
+		obj.vtbl().SetFillMode,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(fillMode),
 		0)
-
 	return
 }
 
-func (this *ID2D1SimplifiedGeometrySinkVtbl) SetSegmentFlags(
-	ptr ComObjectPtr,
+func (obj *ID2D1SimplifiedGeometrySink) SetSegmentFlags(
 	vertexFlags D2D1_PATH_SEGMENT) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetSegmentFlags,
+		obj.vtbl().SetSegmentFlags,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(vertexFlags),
 		0)
-
 	return
 }
 
-func (this *ID2D1SimplifiedGeometrySinkVtbl) BeginFigure(
-	ptr ComObjectPtr,
+func (obj *ID2D1SimplifiedGeometrySink) BeginFigure(
 	startPoint D2D1_POINT_2F,
 	figureBegin D2D1_FIGURE_BEGIN) {
 	var _, _, _ = syscall.Syscall6(
-		this.pBeginFigure,
+		obj.vtbl().BeginFigure,
 		4,
-		ptr.RawPtr(),
-		*(*uintptr)(unsafe.Pointer(&startPoint.X)),
-		*(*uintptr)(unsafe.Pointer(&startPoint.Y)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&startPoint.X))),
+		uintptr(*(*uint32)(unsafe.Pointer(&startPoint.Y))),
 		uintptr(figureBegin),
 		0,
 		0)
-
 	return
 }
 
-func (this *ID2D1SimplifiedGeometrySinkVtbl) AddLines(
-	ptr ComObjectPtr,
+func (obj *ID2D1SimplifiedGeometrySink) AddLines(
 	points []D2D1_POINT_2F) {
-	var pointsCount uint32 = uint32(len(points))
 	var _, _, _ = syscall.Syscall(
-		this.pAddLines,
+		obj.vtbl().AddLines,
 		3,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&points[0])),
-		uintptr(pointsCount))
-
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&(points[0]))),
+		uintptr(len(points)))
 	return
 }
 
-func (this *ID2D1SimplifiedGeometrySinkVtbl) AddBeziers(
-	ptr ComObjectPtr,
+func (obj *ID2D1SimplifiedGeometrySink) AddBeziers(
 	beziers []D2D1_BEZIER_SEGMENT) {
-	var beziersCount uint32 = uint32(len(beziers))
 	var _, _, _ = syscall.Syscall(
-		this.pAddBeziers,
+		obj.vtbl().AddBeziers,
 		3,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&beziers[0])),
-		uintptr(beziersCount))
-
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&(beziers[0]))),
+		uintptr(len(beziers)))
 	return
 }
 
-func (this *ID2D1SimplifiedGeometrySinkVtbl) EndFigure(
-	ptr ComObjectPtr,
+func (obj *ID2D1SimplifiedGeometrySink) EndFigure(
 	figureEnd D2D1_FIGURE_END) {
 	var _, _, _ = syscall.Syscall(
-		this.pEndFigure,
+		obj.vtbl().EndFigure,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(figureEnd),
 		0)
-
 	return
 }
 
-func (this *ID2D1SimplifiedGeometrySinkVtbl) Close(
-	ptr ComObjectPtr) {
+func (obj *ID2D1SimplifiedGeometrySink) Close() (
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pClose,
+		obj.vtbl().Close,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Close: %#x", ret))
+		err = fmt.Errorf("Fail to call Close: %#x", ret)
 	}
 	return
 }
@@ -785,54 +676,39 @@ var IID_ID2D1TessellationSink = GUID{0x2cd906c1, 0x12e2, 0x11dc, [8]byte{0x9f, 0
 
 type ID2D1TessellationSinkVtbl struct {
 	IUnknownVtbl
-	pAddTriangles uintptr
-	pClose        uintptr
+	AddTriangles uintptr
+	Close        uintptr
 }
 
 type ID2D1TessellationSink struct {
-	*ID2D1TessellationSinkVtbl
+	IUnknown
 }
 
-type ID2D1TessellationSinkPtr struct {
-	*ID2D1TessellationSink
+func (obj *ID2D1TessellationSink) vtbl() *ID2D1TessellationSinkVtbl {
+	return (*ID2D1TessellationSinkVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1TessellationSinkPtr) GUID() *GUID {
-	return &IID_ID2D1TessellationSink
-}
-
-func (this ID2D1TessellationSinkPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1TessellationSink))
-}
-
-func (this *ID2D1TessellationSinkPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1TessellationSink = (*ID2D1TessellationSink)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1TessellationSinkVtbl) AddTriangles(
-	ptr ComObjectPtr,
+func (obj *ID2D1TessellationSink) AddTriangles(
 	triangles []D2D1_TRIANGLE) {
-	var trianglesCount uint32 = uint32(len(triangles))
 	var _, _, _ = syscall.Syscall(
-		this.pAddTriangles,
+		obj.vtbl().AddTriangles,
 		3,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&triangles[0])),
-		uintptr(trianglesCount))
-
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&(triangles[0]))),
+		uintptr(len(triangles)))
 	return
 }
 
-func (this *ID2D1TessellationSinkVtbl) Close(
-	ptr ComObjectPtr) {
+func (obj *ID2D1TessellationSink) Close() (
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pClose,
+		obj.vtbl().Close,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call Close: %#x", ret))
+		err = fmt.Errorf("Fail to call Close: %#x", ret)
 	}
 	return
 }
@@ -842,95 +718,72 @@ var IID_ID2D1GeometrySink = GUID{0x2cd9069f, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed,
 
 type ID2D1GeometrySinkVtbl struct {
 	ID2D1SimplifiedGeometrySinkVtbl
-	pAddLine             uintptr
-	pAddBezier           uintptr
-	pAddQuadraticBezier  uintptr
-	pAddQuadraticBeziers uintptr
-	pAddArc              uintptr
+	AddLine             uintptr
+	AddBezier           uintptr
+	AddQuadraticBezier  uintptr
+	AddQuadraticBeziers uintptr
+	AddArc              uintptr
 }
 
 type ID2D1GeometrySink struct {
-	*ID2D1GeometrySinkVtbl
+	ID2D1SimplifiedGeometrySink
 }
 
-type ID2D1GeometrySinkPtr struct {
-	*ID2D1GeometrySink
+func (obj *ID2D1GeometrySink) vtbl() *ID2D1GeometrySinkVtbl {
+	return (*ID2D1GeometrySinkVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1GeometrySinkPtr) GUID() *GUID {
-	return &IID_ID2D1GeometrySink
-}
-
-func (this ID2D1GeometrySinkPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1GeometrySink))
-}
-
-func (this *ID2D1GeometrySinkPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1GeometrySink = (*ID2D1GeometrySink)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1GeometrySinkVtbl) AddLine(
-	ptr ComObjectPtr,
+func (obj *ID2D1GeometrySink) AddLine(
 	point D2D1_POINT_2F) {
 	var _, _, _ = syscall.Syscall(
-		this.pAddLine,
+		obj.vtbl().AddLine,
 		3,
-		ptr.RawPtr(),
-		*(*uintptr)(unsafe.Pointer(&point.X)),
-		*(*uintptr)(unsafe.Pointer(&point.Y)))
-
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
+		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))))
 	return
 }
 
-func (this *ID2D1GeometrySinkVtbl) AddBezier(
-	ptr ComObjectPtr,
+func (obj *ID2D1GeometrySink) AddBezier(
 	bezier *D2D1_BEZIER_SEGMENT) {
 	var _, _, _ = syscall.Syscall(
-		this.pAddBezier,
+		obj.vtbl().AddBezier,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(bezier)),
 		0)
-
 	return
 }
 
-func (this *ID2D1GeometrySinkVtbl) AddQuadraticBezier(
-	ptr ComObjectPtr,
+func (obj *ID2D1GeometrySink) AddQuadraticBezier(
 	bezier *D2D1_QUADRATIC_BEZIER_SEGMENT) {
 	var _, _, _ = syscall.Syscall(
-		this.pAddQuadraticBezier,
+		obj.vtbl().AddQuadraticBezier,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(bezier)),
 		0)
-
 	return
 }
 
-func (this *ID2D1GeometrySinkVtbl) AddQuadraticBeziers(
-	ptr ComObjectPtr,
+func (obj *ID2D1GeometrySink) AddQuadraticBeziers(
 	beziers []D2D1_QUADRATIC_BEZIER_SEGMENT) {
-	var beziersCount uint32 = uint32(len(beziers))
 	var _, _, _ = syscall.Syscall(
-		this.pAddQuadraticBeziers,
+		obj.vtbl().AddQuadraticBeziers,
 		3,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&beziers[0])),
-		uintptr(beziersCount))
-
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&(beziers[0]))),
+		uintptr(len(beziers)))
 	return
 }
 
-func (this *ID2D1GeometrySinkVtbl) AddArc(
-	ptr ComObjectPtr,
+func (obj *ID2D1GeometrySink) AddArc(
 	arc *D2D1_ARC_SEGMENT) {
 	var _, _, _ = syscall.Syscall(
-		this.pAddArc,
+		obj.vtbl().AddArc,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(arc)),
 		0)
-
 	return
 }

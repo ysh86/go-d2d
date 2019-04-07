@@ -30,36 +30,17 @@ type ID2D1FactoryVtbl struct {
 }
 
 type ID2D1Factory struct {
-	vtbl *ID2D1FactoryVtbl
+	IUnknown
 }
 
-func (obj *ID2D1Factory) GUID() *GUID {
-	return &IID_ID2D1Factory
-}
-
-func (obj *ID2D1Factory) QueryInterface(
-	riid *GUID) (
-	dest unsafe.Pointer,
-	err error) {
-	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
-}
-
-func (obj *ID2D1Factory) AddRef() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
-}
-
-func (obj *ID2D1Factory) Release() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).Release()
-}
-
-func (obj *ID2D1Factory) Parent() *IUnknown {
-	return (*IUnknown)(unsafe.Pointer(obj))
+func (obj *ID2D1Factory) vtbl() *ID2D1FactoryVtbl {
+	return (*ID2D1FactoryVtbl)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1Factory) ReloadSystemMetrics() (
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.ReloadSystemMetrics,
+		obj.vtbl().ReloadSystemMetrics,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -74,7 +55,7 @@ func (obj *ID2D1Factory) GetDesktopDpi() (
 	dpiX float32,
 	dpiY float32) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.GetDesktopDpi,
+		obj.vtbl().GetDesktopDpi,
 		3,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&dpiX)),
@@ -87,7 +68,7 @@ func (obj *ID2D1Factory) CreateRectangleGeometry(
 	rectangleGeometry *ID2D1RectangleGeometry,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.CreateRectangleGeometry,
+		obj.vtbl().CreateRectangleGeometry,
 		3,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(rectangle)),
@@ -103,7 +84,7 @@ func (obj *ID2D1Factory) CreateRoundedRectangleGeometry(
 	roundedRectangleGeometry *ID2D1RoundedRectangleGeometry,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.CreateRoundedRectangleGeometry,
+		obj.vtbl().CreateRoundedRectangleGeometry,
 		3,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(roundedRectangle)),
@@ -119,7 +100,7 @@ func (obj *ID2D1Factory) CreateEllipseGeometry(
 	ellipseGeometry *ID2D1EllipseGeometry,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.CreateEllipseGeometry,
+		obj.vtbl().CreateEllipseGeometry,
 		3,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(ellipse)),
@@ -136,7 +117,7 @@ func (obj *ID2D1Factory) CreateGeometryGroup(
 	geometryGroup *ID2D1GeometryGroup,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateGeometryGroup,
+		obj.vtbl().CreateGeometryGroup,
 		5,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(fillMode),
@@ -156,7 +137,7 @@ func (obj *ID2D1Factory) CreateTransformedGeometry(
 	transformedGeometry *ID2D1TransformedGeometry,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateTransformedGeometry,
+		obj.vtbl().CreateTransformedGeometry,
 		4,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(sourceGeometry)),
@@ -174,7 +155,7 @@ func (obj *ID2D1Factory) CreatePathGeometry() (
 	pathGeometry *ID2D1PathGeometry,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.CreatePathGeometry,
+		obj.vtbl().CreatePathGeometry,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&pathGeometry)),
@@ -191,7 +172,7 @@ func (obj *ID2D1Factory) CreateStrokeStyle(
 	strokeStyle *ID2D1StrokeStyle,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateStrokeStyle,
+		obj.vtbl().CreateStrokeStyle,
 		5,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(strokeStyleProperties)),
@@ -207,12 +188,11 @@ func (obj *ID2D1Factory) CreateStrokeStyle(
 
 func (obj *ID2D1Factory) CreateDrawingStateBlock(
 	drawingStateDescription *D2D1_DRAWING_STATE_DESCRIPTION,
-	//textRenderingParams *IDWriteRenderingParams) (
-	textRenderingParams unsafe.Pointer) (
+	textRenderingParams *IDWriteRenderingParams) (
 	drawingStateBlock *ID2D1DrawingStateBlock,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateDrawingStateBlock,
+		obj.vtbl().CreateDrawingStateBlock,
 		4,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(drawingStateDescription)),
@@ -227,13 +207,12 @@ func (obj *ID2D1Factory) CreateDrawingStateBlock(
 }
 
 func (obj *ID2D1Factory) CreateWicBitmapRenderTarget(
-	//target *IWICBitmap,
-	target unsafe.Pointer,
+	target *IWICBitmap,
 	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES) (
 	renderTarget *ID2D1RenderTarget,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateWicBitmapRenderTarget,
+		obj.vtbl().CreateWicBitmapRenderTarget,
 		4,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(target)),
@@ -253,7 +232,7 @@ func (obj *ID2D1Factory) CreateHwndRenderTarget(
 	hwndRenderTarget *ID2D1HwndRenderTarget,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateHwndRenderTarget,
+		obj.vtbl().CreateHwndRenderTarget,
 		4,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),
@@ -268,13 +247,12 @@ func (obj *ID2D1Factory) CreateHwndRenderTarget(
 }
 
 func (obj *ID2D1Factory) CreateDxgiSurfaceRenderTarget(
-	//dxgiSurface *IDXGISurface,
-	dxgiSurface unsafe.Pointer,
+	dxgiSurface *IDXGISurface,
 	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES) (
 	renderTarget *ID2D1RenderTarget,
 	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		obj.vtbl.CreateDxgiSurfaceRenderTarget,
+		obj.vtbl().CreateDxgiSurfaceRenderTarget,
 		4,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(dxgiSurface)),
@@ -293,7 +271,7 @@ func (obj *ID2D1Factory) CreateDCRenderTarget(
 	dcRenderTarget *ID2D1DCRenderTarget,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.CreateDCRenderTarget,
+		obj.vtbl().CreateDCRenderTarget,
 		3,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),

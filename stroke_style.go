@@ -24,36 +24,17 @@ type ID2D1StrokeStyleVtbl struct {
 }
 
 type ID2D1StrokeStyle struct {
-	vtbl *ID2D1StrokeStyleVtbl
+	ID2D1Resource
 }
 
-func (obj *ID2D1StrokeStyle) GUID() *GUID {
-	return &IID_ID2D1StrokeStyle
-}
-
-func (obj *ID2D1StrokeStyle) QueryInterface(
-	riid *GUID) (
-	dest unsafe.Pointer,
-	err error) {
-	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
-}
-
-func (obj *ID2D1StrokeStyle) AddRef() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
-}
-
-func (obj *ID2D1StrokeStyle) Release() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).Release()
-}
-
-func (obj *ID2D1StrokeStyle) Parent() *ID2D1Resource {
-	return (*ID2D1Resource)(unsafe.Pointer(obj))
+func (obj *ID2D1StrokeStyle) vtbl() *ID2D1StrokeStyleVtbl {
+	return (*ID2D1StrokeStyleVtbl)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1StrokeStyle) GetStartCap() (
 	result D2D1_CAP_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetStartCap,
+		obj.vtbl().GetStartCap,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -65,7 +46,7 @@ func (obj *ID2D1StrokeStyle) GetStartCap() (
 func (obj *ID2D1StrokeStyle) GetEndCap() (
 	result D2D1_CAP_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetEndCap,
+		obj.vtbl().GetEndCap,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -77,7 +58,7 @@ func (obj *ID2D1StrokeStyle) GetEndCap() (
 func (obj *ID2D1StrokeStyle) GetDashCap() (
 	result D2D1_CAP_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetDashCap,
+		obj.vtbl().GetDashCap,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -89,19 +70,20 @@ func (obj *ID2D1StrokeStyle) GetDashCap() (
 func (obj *ID2D1StrokeStyle) GetMiterLimit() (
 	result float32) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetMiterLimit,
+		obj.vtbl().GetMiterLimit,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	result = *(*float32)(unsafe.Pointer(&ret))
+	ret32 := uint32(ret)
+	result = *(*float32)(unsafe.Pointer(&ret32))
 	return
 }
 
 func (obj *ID2D1StrokeStyle) GetLineJoin() (
 	result D2D1_LINE_JOIN) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetLineJoin,
+		obj.vtbl().GetLineJoin,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -113,19 +95,20 @@ func (obj *ID2D1StrokeStyle) GetLineJoin() (
 func (obj *ID2D1StrokeStyle) GetDashOffset() (
 	result float32) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetDashOffset,
+		obj.vtbl().GetDashOffset,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	result = *(*float32)(unsafe.Pointer(&ret))
+	ret32 := uint32(ret)
+	result = *(*float32)(unsafe.Pointer(&ret32))
 	return
 }
 
 func (obj *ID2D1StrokeStyle) GetDashStyle() (
 	result D2D1_DASH_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetDashStyle,
+		obj.vtbl().GetDashStyle,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -137,7 +120,7 @@ func (obj *ID2D1StrokeStyle) GetDashStyle() (
 func (obj *ID2D1StrokeStyle) GetDashesCount() (
 	result uint32) {
 	var ret, _, _ = syscall.Syscall(
-		obj.vtbl.GetDashesCount,
+		obj.vtbl().GetDashesCount,
 		1,
 		uintptr(unsafe.Pointer(obj)),
 		0,
@@ -149,7 +132,7 @@ func (obj *ID2D1StrokeStyle) GetDashesCount() (
 func (obj *ID2D1StrokeStyle) GetDashes(
 	dashes []float32) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.GetDashes,
+		obj.vtbl().GetDashes,
 		3,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&(dashes[0]))),

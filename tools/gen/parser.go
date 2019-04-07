@@ -28,7 +28,6 @@ const (
 var cTypeToGoType = map[string]string{
 	"FLOAT":  "float32",
 	"UINT32": "uint32",
-	"BOOL":   "bool",
 }
 
 func CreateCHeaderLexer() RegexpLexer {
@@ -459,6 +458,15 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 }
 {{end}}
 `))
+
+// TODO: bool 1byte, BOOL 4byte
+// TODO: string
+// TODO: brush COLOR_F, geometry POINT_2F
+// render POINT & SIZE
+//   D2D1_SIZE_ 渡し方も受け方もあやしい
+//   D2D1_PIXEL_FORMAT
+// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
+// https://docs.microsoft.com/en-us/windows/desktop/winprog/windows-data-types
 
 func (ii Interface) String() string {
 	b := &bytes.Buffer{}

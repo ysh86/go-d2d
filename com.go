@@ -17,15 +17,6 @@ type GUID struct {
 	Data4 [8]byte
 }
 
-type ComObjectPtr interface {
-	GUID() *GUID
-	RawPtr() uintptr
-}
-type ComObjectPtrPtr interface {
-	ComObjectPtr
-	SetRawPtr(uintptr)
-}
-
 // HRESULT values
 const (
 	S_OK = 0
@@ -41,11 +32,6 @@ type IUnknownVtbl struct {
 
 type IUnknown struct {
 	unsafeVtbl unsafe.Pointer
-}
-
-// TODO: いらない
-func (obj *IUnknown) GUID() *GUID {
-	return &IID_IUnknown
 }
 
 func (obj *IUnknown) vtbl() *IUnknownVtbl {

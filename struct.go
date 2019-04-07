@@ -135,6 +135,45 @@ type D2D_COLOR_F D3DCOLORVALUE
 type D2D1_COLOR_F D2D_COLOR_F
 
 type D2D1_BRUSH_PROPERTIES struct {
-	Opacity float32
+	Opacity   float32
 	Transform D2D1_MATRIX_3X2_F
+}
+
+type D2D1_GRADIENT_STOP struct {
+	Position float32
+	Color    D2D1_COLOR_F
+}
+
+type D2D1_LINEAR_GRADIENT_BRUSH_PROPERTIES struct {
+	StartPoint D2D1_POINT_2F
+	EndPoint   D2D1_POINT_2F
+}
+
+type D2D1_RADIAL_GRADIENT_BRUSH_PROPERTIES struct {
+	Center               D2D1_POINT_2F
+	GradientOriginOffset D2D1_POINT_2F
+	RadiusX              float32
+	RadiusY              float32
+}
+
+type D2D1_BITMAP_PROPERTIES struct {
+	PixelFormat D2D1_PIXEL_FORMAT
+	DpiX        float32
+	DpiY        float32
+}
+
+type D2D1_BITMAP_BRUSH_PROPERTIES struct {
+	ExtendModeX       D2D1_EXTEND_MODE
+	ExtendModeY       D2D1_EXTEND_MODE
+	InterpolationMode D2D1_BITMAP_INTERPOLATION_MODE
+}
+
+type D2D1_LAYER_PARAMETERS struct {
+	ContentBounds     D2D1_RECT_F
+	GeometricMask     *ID2D1Geometry
+	MaskAntialiasMode D2D1_ANTIALIAS_MODE
+	MaskTransform     D2D1_MATRIX_3X2_F
+	Opacity           float32
+	OpacityBrush      *ID2D1Brush
+	LayerOptions      D2D1_LAYER_OPTIONS
 }

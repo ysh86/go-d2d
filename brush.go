@@ -1,6 +1,4 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// +build windows
 
 package d2d
 
@@ -10,140 +8,105 @@ import (
 )
 
 // 2cd906a8-12e2-11dc-9fed-001143a055f9
-var IID_ID2D1Brush = GUID{ 0x2cd906a8, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9} }
+var IID_ID2D1Brush = GUID{0x2cd906a8, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
 type ID2D1BrushVtbl struct {
 	ID2D1ResourceVtbl
-	pSetOpacity uintptr
-	pSetTransform uintptr
-	pGetOpacity uintptr
-	pGetTransform uintptr
+	SetOpacity   uintptr
+	SetTransform uintptr
+	GetOpacity   uintptr
+	GetTransform uintptr
 }
 
 type ID2D1Brush struct {
-	*ID2D1BrushVtbl
+	ID2D1Resource
 }
 
-type ID2D1BrushPtr struct {
-	*ID2D1Brush
+func (obj *ID2D1Brush) vtbl() *ID2D1BrushVtbl {
+	return (*ID2D1BrushVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1BrushPtr) GUID() *GUID {
-	return &IID_ID2D1Brush
-}
-
-func (this ID2D1BrushPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1Brush))
-}
-
-func (this *ID2D1BrushPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1Brush = (*ID2D1Brush)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1BrushVtbl) SetOpacity(
-	ptr ComObjectPtr,
+func (obj *ID2D1Brush) SetOpacity(
 	opacity float32) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetOpacity,
+		obj.vtbl().SetOpacity,
 		2,
-		ptr.RawPtr(),
-		*((*uintptr)(unsafe.Pointer(&opacity))),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(*(*uint32)(unsafe.Pointer(&opacity))),
 		0)
-	
 	return
 }
 
-func (this *ID2D1BrushVtbl) SetTransform(
-	ptr ComObjectPtr,
+func (obj *ID2D1Brush) SetTransform(
 	transform *D2D1_MATRIX_3X2_F) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetTransform,
+		obj.vtbl().SetTransform,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(transform)),
 		0)
-	
 	return
 }
 
-func (this *ID2D1BrushVtbl) GetOpacity(
-	ptr ComObjectPtr) float32 {
+func (obj *ID2D1Brush) GetOpacity() (
+	result float32) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetOpacity,
+		obj.vtbl().GetOpacity,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	
-	return *((*float32)(unsafe.Pointer(&ret)))
-}
-
-func (this *ID2D1BrushVtbl) GetTransform(
-	ptr ComObjectPtr) (transform D2D1_MATRIX_3X2_F) {
-	var _, _, _ = syscall.Syscall(
-		this.pGetTransform,
-		2,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&transform)),
-		0)
-	
+	ret32 := uint32(ret)
+	result = *(*float32)(unsafe.Pointer(&ret32))
 	return
 }
 
-
+func (obj *ID2D1Brush) GetTransform() (
+	transform D2D1_MATRIX_3X2_F) {
+	var _, _, _ = syscall.Syscall(
+		obj.vtbl().GetTransform,
+		2,
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&transform)),
+		0)
+	return
+}
 
 // 2cd906a9-12e2-11dc-9fed-001143a055f9
-var IID_ID2D1SolidColorBrush = GUID{ 0x2cd906a9, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9} }
+var IID_ID2D1SolidColorBrush = GUID{0x2cd906a9, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
 type ID2D1SolidColorBrushVtbl struct {
 	ID2D1BrushVtbl
-	pSetColor uintptr
-	pGetColor uintptr
+	SetColor uintptr
+	GetColor uintptr
 }
 
 type ID2D1SolidColorBrush struct {
-	*ID2D1SolidColorBrushVtbl
+	ID2D1Brush
 }
 
-type ID2D1SolidColorBrushPtr struct {
-	*ID2D1SolidColorBrush
+func (obj *ID2D1SolidColorBrush) vtbl() *ID2D1SolidColorBrushVtbl {
+	return (*ID2D1SolidColorBrushVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1SolidColorBrushPtr) GUID() *GUID {
-	return &IID_ID2D1SolidColorBrush
-}
-
-func (this ID2D1SolidColorBrushPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1SolidColorBrush))
-}
-
-func (this *ID2D1SolidColorBrushPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1SolidColorBrush = (*ID2D1SolidColorBrush)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1SolidColorBrushVtbl) SetColor(
-	ptr ComObjectPtr,
+func (obj *ID2D1SolidColorBrush) SetColor(
 	color *D2D1_COLOR_F) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetColor,
+		obj.vtbl().SetColor,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(color)),
 		0)
-	
 	return
 }
 
-func (this *ID2D1SolidColorBrushVtbl) GetColor(
-	ptr ComObjectPtr) (color D2D1_COLOR_F) {
+func (obj *ID2D1SolidColorBrush) GetColor() (
+	result D2D1_COLOR_F) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetColor,
+		obj.vtbl().GetColor,
 		2,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&color)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&result)),
 		0)
-	
 	return
 }
-
-

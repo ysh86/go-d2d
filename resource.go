@@ -16,36 +16,17 @@ type ID2D1ResourceVtbl struct {
 }
 
 type ID2D1Resource struct {
-	vtbl *ID2D1ResourceVtbl
+	IUnknown
 }
 
-func (obj *ID2D1Resource) GUID() *GUID {
-	return &IID_ID2D1Resource
-}
-
-func (obj *ID2D1Resource) QueryInterface(
-	riid *GUID) (
-	dest unsafe.Pointer,
-	err error) {
-	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
-}
-
-func (obj *ID2D1Resource) AddRef() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
-}
-
-func (obj *ID2D1Resource) Release() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).Release()
-}
-
-func (obj *ID2D1Resource) Parent() *IUnknown {
-	return (*IUnknown)(unsafe.Pointer(obj))
+func (obj *ID2D1Resource) vtbl() *ID2D1ResourceVtbl {
+	return (*ID2D1ResourceVtbl)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1Resource) GetFactory() (
 	factory *ID2D1Factory) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.GetFactory,
+		obj.vtbl().GetFactory,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&factory)),

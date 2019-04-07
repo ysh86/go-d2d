@@ -19,36 +19,17 @@ type ID2D1DrawingStateBlockVtbl struct {
 }
 
 type ID2D1DrawingStateBlock struct {
-	vtbl *ID2D1DrawingStateBlockVtbl
+	ID2D1Resource
 }
 
-func (obj *ID2D1DrawingStateBlock) GUID() *GUID {
-	return &IID_ID2D1DrawingStateBlock
-}
-
-func (obj *ID2D1DrawingStateBlock) QueryInterface(
-	riid *GUID) (
-	dest unsafe.Pointer,
-	err error) {
-	return (*IUnknown)(unsafe.Pointer(obj)).QueryInterface(riid)
-}
-
-func (obj *ID2D1DrawingStateBlock) AddRef() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).AddRef()
-}
-
-func (obj *ID2D1DrawingStateBlock) Release() uint32 {
-	return (*IUnknown)(unsafe.Pointer(obj)).Release()
-}
-
-func (obj *ID2D1DrawingStateBlock) Parent() *ID2D1Resource {
-	return (*ID2D1Resource)(unsafe.Pointer(obj))
+func (obj *ID2D1DrawingStateBlock) vtbl() *ID2D1DrawingStateBlockVtbl {
+	return (*ID2D1DrawingStateBlockVtbl)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1DrawingStateBlock) GetDescription() (
 	stateDescription D2D1_DRAWING_STATE_DESCRIPTION) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.GetDescription,
+		obj.vtbl().GetDescription,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&stateDescription)),
@@ -59,7 +40,7 @@ func (obj *ID2D1DrawingStateBlock) GetDescription() (
 func (obj *ID2D1DrawingStateBlock) SetDescription(
 	stateDescription *D2D1_DRAWING_STATE_DESCRIPTION) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.SetDescription,
+		obj.vtbl().SetDescription,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(stateDescription)),
@@ -68,10 +49,9 @@ func (obj *ID2D1DrawingStateBlock) SetDescription(
 }
 
 func (obj *ID2D1DrawingStateBlock) SetTextRenderingParams(
-	//textRenderingParams *IDWriteRenderingParams) {
-	textRenderingParams unsafe.Pointer) {
+	textRenderingParams *IDWriteRenderingParams) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.SetTextRenderingParams,
+		obj.vtbl().SetTextRenderingParams,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(textRenderingParams)),
@@ -80,10 +60,9 @@ func (obj *ID2D1DrawingStateBlock) SetTextRenderingParams(
 }
 
 func (obj *ID2D1DrawingStateBlock) GetTextRenderingParams() (
-	//textRenderingParams *IDWriteRenderingParams) {
-	textRenderingParams unsafe.Pointer) {
+	textRenderingParams *IDWriteRenderingParams) {
 	var _, _, _ = syscall.Syscall(
-		obj.vtbl.GetTextRenderingParams,
+		obj.vtbl().GetTextRenderingParams,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&textRenderingParams)),
