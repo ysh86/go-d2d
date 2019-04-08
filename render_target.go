@@ -305,18 +305,15 @@ func (obj *ID2D1RenderTarget) DrawLine(
 	brush *ID2D1Brush,
 	strokeWidth float32,
 	strokeStyle *ID2D1StrokeStyle) {
-	var _, _, _ = syscall.Syscall9(
+	var _, _, _ = syscall.Syscall6(
 		obj.vtbl().DrawLine,
-		8,
+		6,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point0.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point0.Y))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point1.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point1.Y))),
+		uintptr(*(*uint64)(unsafe.Pointer(&point0))),
+		uintptr(*(*uint64)(unsafe.Pointer(&point1))),
 		uintptr(unsafe.Pointer(brush)),
 		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
-		uintptr(unsafe.Pointer(strokeStyle)),
-		0)
+		uintptr(unsafe.Pointer(strokeStyle)))
 	return
 }
 
