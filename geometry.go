@@ -80,25 +80,23 @@ func (obj *ID2D1Geometry) StrokeContainsPoint(
 	strokeStyle *ID2D1StrokeStyle,
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32) (
-	contains bool,
+	contains BOOL,
 	err error) {
-	containsWinbool := 0
 	var ret, _, _ = syscall.Syscall9(
 		obj.vtbl().StrokeContainsPoint,
-		8,
+		7,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))),
+		uintptr(point),
 		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
 		uintptr(unsafe.Pointer(strokeStyle)),
 		uintptr(unsafe.Pointer(worldTransform)),
 		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
-		uintptr(unsafe.Pointer(&containsWinbool)),
+		uintptr(unsafe.Pointer(&contains)),
+		0,
 		0)
 	if ret != S_OK {
 		err = fmt.Errorf("Fail to call StrokeContainsPoint: %#x", ret)
 	}
-	contains = (containsWinbool != 0)
 	return
 }
 
@@ -106,22 +104,20 @@ func (obj *ID2D1Geometry) FillContainsPoint(
 	point D2D1_POINT_2F,
 	worldTransform *D2D1_MATRIX_3X2_F,
 	flatteningTolerance float32) (
-	contains bool,
+	contains BOOL,
 	err error) {
-	containsWinbool := 0
 	var ret, _, _ = syscall.Syscall6(
 		obj.vtbl().FillContainsPoint,
-		6,
+		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))),
+		uintptr(point),
 		uintptr(unsafe.Pointer(worldTransform)),
 		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
-		uintptr(unsafe.Pointer(&containsWinbool)))
+		uintptr(unsafe.Pointer(&contains)),
+		0)
 	if ret != S_OK {
 		err = fmt.Errorf("Fail to call FillContainsPoint: %#x", ret)
 	}
-	contains = (containsWinbool != 0)
 	return
 }
 
@@ -612,15 +608,12 @@ func (obj *ID2D1SimplifiedGeometrySink) SetSegmentFlags(
 func (obj *ID2D1SimplifiedGeometrySink) BeginFigure(
 	startPoint D2D1_POINT_2F,
 	figureBegin D2D1_FIGURE_BEGIN) {
-	var _, _, _ = syscall.Syscall6(
+	var _, _, _ = syscall.Syscall(
 		obj.vtbl().BeginFigure,
-		4,
+		3,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&startPoint.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&startPoint.Y))),
-		uintptr(figureBegin),
-		0,
-		0)
+		uintptr(startPoint),
+		uintptr(figureBegin))
 	return
 }
 
@@ -737,10 +730,10 @@ func (obj *ID2D1GeometrySink) AddLine(
 	point D2D1_POINT_2F) {
 	var _, _, _ = syscall.Syscall(
 		obj.vtbl().AddLine,
-		3,
+		2,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))))
+		uintptr(point),
+		0)
 	return
 }
 

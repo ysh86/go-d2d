@@ -102,11 +102,12 @@ func (obj *ID2D1SolidColorBrush) SetColor(
 
 func (obj *ID2D1SolidColorBrush) GetColor() (
 	result D2D1_COLOR_F) {
-	var _, _, _ = syscall.Syscall(
+	var ret, _, _ = syscall.Syscall(
 		obj.vtbl().GetColor,
-		2,
+		1,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(&result)),
+		0,
 		0)
+	result = (D2D1_COLOR_F)(ret)
 	return
 }

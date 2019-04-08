@@ -78,23 +78,20 @@ func (obj *ID2D1RenderTarget) vtbl() *ID2D1RenderTargetVtbl {
 
 func (obj *ID2D1RenderTarget) CreateBitmap(
 	size D2D1_SIZE_U,
-	srcData unsafe.Pointer,
+	srcData *void,
 	pitch uint32,
 	bitmapProperties *D2D1_BITMAP_PROPERTIES) (
 	bitmap *ID2D1Bitmap,
 	err error) {
-	var ret, _, _ = syscall.Syscall9(
+	var ret, _, _ = syscall.Syscall6(
 		obj.vtbl().CreateBitmap,
-		7,
+		6,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(size.Width),
-		uintptr(size.Height),
+		uintptr(size),
 		uintptr(unsafe.Pointer(srcData)),
 		uintptr(pitch),
 		uintptr(unsafe.Pointer(bitmapProperties)),
-		uintptr(unsafe.Pointer(&bitmap)),
-		0,
-		0)
+		uintptr(unsafe.Pointer(&bitmap)))
 	if ret != S_OK {
 		err = fmt.Errorf("Fail to call CreateBitmap: %#x", ret)
 	}
@@ -122,8 +119,8 @@ func (obj *ID2D1RenderTarget) CreateBitmapFromWicBitmap(
 }
 
 func (obj *ID2D1RenderTarget) CreateSharedBitmap(
-	iid *GUID,
-	data unsafe.Pointer,
+	riid REFIID,
+	data *void,
 	bitmapProperties *D2D1_BITMAP_PROPERTIES) (
 	bitmap *ID2D1Bitmap,
 	err error) {
@@ -131,7 +128,7 @@ func (obj *ID2D1RenderTarget) CreateSharedBitmap(
 		obj.vtbl().CreateSharedBitmap,
 		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(iid)),
+		uintptr(riid),
 		uintptr(unsafe.Pointer(data)),
 		uintptr(unsafe.Pointer(bitmapProperties)),
 		uintptr(unsafe.Pointer(&bitmap)),
@@ -305,18 +302,15 @@ func (obj *ID2D1RenderTarget) DrawLine(
 	brush *ID2D1Brush,
 	strokeWidth float32,
 	strokeStyle *ID2D1StrokeStyle) {
-	var _, _, _ = syscall.Syscall9(
+	var _, _, _ = syscall.Syscall6(
 		obj.vtbl().DrawLine,
-		8,
+		6,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point0.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point0.Y))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point1.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point1.Y))),
+		uintptr(point0),
+		uintptr(point1),
 		uintptr(unsafe.Pointer(brush)),
 		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
-		uintptr(unsafe.Pointer(strokeStyle)),
-		0)
+		uintptr(unsafe.Pointer(strokeStyle)))
 	return
 }
 
@@ -489,7 +483,7 @@ func (obj *ID2D1RenderTarget) DrawBitmap(
 }
 
 func (obj *ID2D1RenderTarget) DrawText(
-	string []uint16,
+	string []WCHAR,
 	textFormat *IDWriteTextFormat,
 	layoutRect *D2D1_RECT_F,
 	defaultForegroundBrush *ID2D1Brush,
@@ -517,13 +511,13 @@ func (obj *ID2D1RenderTarget) DrawTextLayout(
 	options D2D1_DRAW_TEXT_OPTIONS) {
 	var _, _, _ = syscall.Syscall6(
 		obj.vtbl().DrawTextLayout,
-		6,
+		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&origin.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&origin.Y))),
+		uintptr(origin),
 		uintptr(unsafe.Pointer(textLayout)),
 		uintptr(unsafe.Pointer(defaultForegroundBrush)),
-		uintptr(options))
+		uintptr(options),
+		0)
 	return
 }
 
@@ -534,13 +528,13 @@ func (obj *ID2D1RenderTarget) DrawGlyphRun(
 	measuringMode DWRITE_MEASURING_MODE) {
 	var _, _, _ = syscall.Syscall6(
 		obj.vtbl().DrawGlyphRun,
-		6,
+		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&baselineOrigin.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&baselineOrigin.Y))),
+		uintptr(baselineOrigin),
 		uintptr(unsafe.Pointer(glyphRun)),
 		uintptr(unsafe.Pointer(foregroundBrush)),
-		uintptr(measuringMode))
+		uintptr(measuringMode),
+		0)
 	return
 }
 
@@ -779,12 +773,13 @@ func (obj *ID2D1RenderTarget) EndDraw() (
 
 func (obj *ID2D1RenderTarget) GetPixelFormat() (
 	result D2D1_PIXEL_FORMAT) {
-	var _, _, _ = syscall.Syscall(
+	var ret, _, _ = syscall.Syscall(
 		obj.vtbl().GetPixelFormat,
-		2,
+		1,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(&result)),
+		0,
 		0)
+	result = (D2D1_PIXEL_FORMAT)(ret)
 	return
 }
 
@@ -814,23 +809,25 @@ func (obj *ID2D1RenderTarget) GetDpi() (
 
 func (obj *ID2D1RenderTarget) GetSize() (
 	result D2D1_SIZE_F) {
-	var _, _, _ = syscall.Syscall(
+	var ret, _, _ = syscall.Syscall(
 		obj.vtbl().GetSize,
-		2,
+		1,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(&result)),
+		0,
 		0)
+	result = (D2D1_SIZE_F)(ret)
 	return
 }
 
 func (obj *ID2D1RenderTarget) GetPixelSize() (
 	result D2D1_SIZE_U) {
-	var _, _, _ = syscall.Syscall(
+	var ret, _, _ = syscall.Syscall(
 		obj.vtbl().GetPixelSize,
-		2,
+		1,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(&result)),
+		0,
 		0)
+	result = (D2D1_SIZE_U)(ret)
 	return
 }
 
@@ -848,14 +845,14 @@ func (obj *ID2D1RenderTarget) GetMaximumBitmapSize() (
 
 func (obj *ID2D1RenderTarget) IsSupported(
 	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES) (
-	result bool) {
+	result BOOL) {
 	var ret, _, _ = syscall.Syscall(
 		obj.vtbl().IsSupported,
 		2,
 		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),
 		0)
-	result = (ret != 0)
+	result = (BOOL)(ret)
 	return
 }
 
