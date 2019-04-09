@@ -111,16 +111,11 @@ func (app *DemoApp) CreateDeviceResources() {
 		light_slate_gray_brush, _ := app.render_target.CreateSolidColorBrush(
 			&LightSlateGray,
 			nil)
-		defer light_slate_gray_brush.Release()
-		p, _ := light_slate_gray_brush.QueryInterface(&d2d.IID_ID2D1Brush)
-		// TODO: QueryInterface が生すぎる
-		app.light_slate_gray_brush = (*d2d.ID2D1Brush)(p)
+		app.light_slate_gray_brush = &(light_slate_gray_brush.ID2D1Brush)
 		cornflower_blue, _ := app.render_target.CreateSolidColorBrush(
 			&CornflowerBlue,
 			nil)
-		defer cornflower_blue.Release()
-		p, _ = cornflower_blue.QueryInterface(&d2d.IID_ID2D1Brush)
-		app.cornflower_blue = (*d2d.ID2D1Brush)(p)
+		app.cornflower_blue = &(cornflower_blue.ID2D1Brush)
 	}
 }
 
