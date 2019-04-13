@@ -1,6 +1,5 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// Creating a Simple Direct2D Application
+// https://docs.microsoft.com/en-us/windows/desktop/direct2d/direct2d-quickstart
 
 package main
 
@@ -13,20 +12,26 @@ import (
 	d2d "github.com/ysh86/go-d2d"
 )
 
+// DemoApp is the app
 type DemoApp struct {
-	hwnd                   w32.HWND
-	factory                *d2d.ID2D1Factory
-	render_target          *d2d.ID2D1HwndRenderTarget
-	light_slate_gray_brush *d2d.ID2D1Brush
-	cornflower_blue        *d2d.ID2D1Brush
+	hwnd                w32.HWND
+	factory             *d2d.ID2D1Factory
+	renderTarget        *d2d.ID2D1HwndRenderTarget
+	lightSlateGrayBrush *d2d.ID2D1Brush
+	cornflowerBlueBrush *d2d.ID2D1Brush
 }
 
+// Initialize registers the window class and call methods for instantiating drawing resources
 func (app *DemoApp) Initialize() {
-	app.CreateDeviceIndependentResources()
+	// Initialize device-indpendent resources, such
+	// as the Direct2D factory.
+	app.createDeviceIndependentResources()
+
+	// Register the window class.
 	hInstance := w32.GetModuleHandle("")
 	icon := w32.LoadIcon(0, w32.MakeIntResource(w32.IDI_APPLICATION))
 	wndProc := func(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
-		return app.WndProc(hwnd, msg, wParam, lParam)
+		return app.wndProc(hwnd, msg, wParam, lParam)
 	}
 	wndClass := w32.WNDCLASSEX{
 		Size:       uint32(unsafe.Sizeof(w32.WNDCLASSEX{})),
@@ -44,6 +49,11 @@ func (app *DemoApp) Initialize() {
 	}
 	w32.RegisterClassEx(&wndClass)
 
+	// Because the CreateWindow function takes its size in pixels,
+	// obtain the system DPI and use it to scale the window size.
+
+	// The factory returns the current system DPI. This is also the value it will use
+	// to create its own windows.
 	dpiX, dpiY := app.factory.GetDesktopDpi()
 
 	app.hwnd = w32.CreateWindowEx(
@@ -54,7 +64,7 @@ func (app *DemoApp) Initialize() {
 		w32.CW_USEDEFAULT,
 		w32.CW_USEDEFAULT,
 		int(math.Ceil(float64(640*dpiX/96))),
-		int(math.Ceil(float64(640*dpiY/96))),
+		int(math.Ceil(float64(480*dpiY/96))),
 		0,
 		0,
 		hInstance,
@@ -63,169 +73,190 @@ func (app *DemoApp) Initialize() {
 	w32.UpdateWindow(app.hwnd)
 }
 
+//Dispose releases resources
 func (app *DemoApp) Dispose() {
-	// TODO: safe release がダサい
 	if app.factory != nil {
 		app.factory.Release()
 		app.factory = nil
 	}
-	if app.render_target != nil {
-		app.render_target.Release()
-		app.render_target = nil
+	if app.renderTarget != nil {
+		app.renderTarget.Release()
+		app.renderTarget = nil
 	}
-	if app.light_slate_gray_brush != nil {
-		app.light_slate_gray_brush.Release()
-		app.light_slate_gray_brush = nil
+	if app.lightSlateGrayBrush != nil {
+		app.lightSlateGrayBrush.Release()
+		app.lightSlateGrayBrush = nil
 	}
-	if app.cornflower_blue != nil {
-		app.cornflower_blue.Release()
-		app.cornflower_blue = nil
+	if app.cornflowerBlueBrush != nil {
+		app.cornflowerBlueBrush.Release()
+		app.cornflowerBlueBrush = nil
 	}
 }
 
+// RunMessageLoop processes and dispatches messages
 func (app *DemoApp) RunMessageLoop() {
-	msg := w32.MSG{}
+	var msg w32.MSG
 	for w32.GetMessage(&msg, 0, 0, 0) > 0 {
 		w32.TranslateMessage(&msg)
 		w32.DispatchMessage(&msg)
 	}
 }
 
-func (app *DemoApp) CreateDeviceIndependentResources() {
+// private methods
+
+func (app *DemoApp) createDeviceIndependentResources() {
 	app.factory, _ = d2d.D2D1CreateFactory(d2d.D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
 }
 
-func (app *DemoApp) CreateDeviceResources() {
-	if app.render_target == nil {
-		var rc = w32.GetClientRect(app.hwnd)
-		var hwndRenderTargetProperties = d2d.HwndRenderTargetProperties(uintptr(unsafe.Pointer(app.hwnd)))
-		hwndRenderTargetProperties.PixelSize = d2d.D2D1_SIZE_U{
-			uint32(rc.Right - rc.Left),
-			uint32(rc.Bottom - rc.Top),
-		}
-		app.render_target, _ = app.factory.CreateHwndRenderTarget(
+func (app *DemoApp) createDeviceResources() {
+	if app.renderTarget == nil {
+		rc := w32.GetClientRect(app.hwnd)
+		app.renderTarget, _ = app.factory.CreateHwndRenderTarget(
 			d2d.RenderTargetProperties(),
-			hwndRenderTargetProperties)
-		var LightSlateGray = d2d.D2D1_COLOR_F{0x77 / 255., 0x88 / 255., 0x99 / 255., 1}
-		var CornflowerBlue = d2d.D2D1_COLOR_F{0x64 / 255., 0x95 / 255., 0xED / 255., 1}
-		light_slate_gray_brush, _ := app.render_target.CreateSolidColorBrush(
-			&LightSlateGray,
+			&d2d.D2D1_HWND_RENDER_TARGET_PROPERTIES{
+				Hwnd: uintptr(unsafe.Pointer(app.hwnd)),
+				PixelSize: d2d.D2D1_SIZE_U{
+					Width:  uint32(rc.Right - rc.Left),
+					Height: uint32(rc.Bottom - rc.Top)},
+				PresentOptions: d2d.D2D1_PRESENT_OPTIONS_NONE,
+			})
+
+		lightSlateGray := d2d.D2D1_COLOR_F{0x77 / 255., 0x88 / 255., 0x99 / 255., 1}
+		lightSlateGrayBrush, _ := app.renderTarget.CreateSolidColorBrush(
+			&lightSlateGray,
 			nil)
-		app.light_slate_gray_brush = &(light_slate_gray_brush.ID2D1Brush)
-		cornflower_blue, _ := app.render_target.CreateSolidColorBrush(
-			&CornflowerBlue,
+		app.lightSlateGrayBrush = &(lightSlateGrayBrush.ID2D1Brush)
+
+		cornflowerBlue := d2d.D2D1_COLOR_F{0x64 / 255., 0x95 / 255., 0xED / 255., 1}
+		cornflowerBlueBrush, _ := app.renderTarget.CreateSolidColorBrush(
+			&cornflowerBlue,
 			nil)
-		app.cornflower_blue = &(cornflower_blue.ID2D1Brush)
+		app.cornflowerBlueBrush = &(cornflowerBlueBrush.ID2D1Brush)
 	}
 }
 
-func (app *DemoApp) DiscardDeviceResources() {
-	if app.render_target != nil {
-		app.render_target.Release()
-		app.render_target = nil
+func (app *DemoApp) discardDeviceResources() {
+	if app.renderTarget != nil {
+		app.renderTarget.Release()
+		app.renderTarget = nil
 	}
-	if app.light_slate_gray_brush != nil {
-		app.light_slate_gray_brush.Release()
-		app.light_slate_gray_brush = nil
+	if app.lightSlateGrayBrush != nil {
+		app.lightSlateGrayBrush.Release()
+		app.lightSlateGrayBrush = nil
 	}
-	if app.cornflower_blue != nil {
-		app.cornflower_blue.Release()
-		app.cornflower_blue = nil
+	if app.cornflowerBlueBrush != nil {
+		app.cornflowerBlueBrush.Release()
+		app.cornflowerBlueBrush = nil
 	}
 }
 
-func (app *DemoApp) WndProc(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
+func (app *DemoApp) onRender() {
+	app.createDeviceResources()
+
+	app.renderTarget.BeginDraw()
+
+	identityMatrix := d2d.D2D1_MATRIX_3X2_F{
+		A11: 1.,
+		A22: 1.,
+	}
+	app.renderTarget.SetTransform(&identityMatrix)
+
+	white := d2d.D2D1_COLOR_F{1, 1, 1, 1}
+	app.renderTarget.Clear(&white)
+
+	size := app.renderTarget.GetSize()
+
+	// Draw a grid background.
+	width := int(size.Width)
+	height := int(size.Height)
+	for x := 0; x < width; x += 10 {
+		app.renderTarget.DrawLine(
+			d2d.D2D1_POINT_2F{float32(x), 0.0},
+			d2d.D2D1_POINT_2F{float32(x), size.Height},
+			app.lightSlateGrayBrush,
+			0.5,
+			nil)
+	}
+	for y := 0; y < height; y += 10 {
+		app.renderTarget.DrawLine(
+			d2d.D2D1_POINT_2F{0.0, float32(y)},
+			d2d.D2D1_POINT_2F{size.Width, float32(y)},
+			app.lightSlateGrayBrush,
+			0.5,
+			nil)
+	}
+
+	// Draw two rectangles.
+	rectangle1 := d2d.D2D1_RECT_F{
+		size.Width/2.0 - 50.0,
+		size.Height/2.0 - 50.0,
+		size.Width/2.0 + 50.0,
+		size.Height/2.0 + 50.0,
+	}
+	rectangle2 := d2d.D2D1_RECT_F{
+		size.Width/2.0 - 100.0,
+		size.Height/2.0 - 100.0,
+		size.Width/2.0 + 100.0,
+		size.Height/2.0 + 100.0,
+	}
+	// Draw a filled rectangle.
+	app.renderTarget.FillRectangle(
+		&rectangle1,
+		app.lightSlateGrayBrush)
+	// Draw the outline of a rectangle.
+	app.renderTarget.DrawRectangle(
+		&rectangle2,
+		app.cornflowerBlueBrush,
+		1,
+		nil)
+
+	app.renderTarget.EndDraw()
+
+	// TODO: error handling
+	var err error
+	if err != nil {
+		app.discardDeviceResources()
+	}
+}
+
+func (app *DemoApp) onResize(w, h uint32) {
+	if app.renderTarget != nil {
+		app.renderTarget.Resize(
+			&d2d.D2D1_SIZE_U{w, h})
+	}
+}
+
+func (app *DemoApp) wndProc(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
 	if hwnd != app.hwnd {
 		return w32.DefWindowProc(hwnd, msg, wParam, lParam)
 	}
 	switch msg {
 	case w32.WM_SIZE:
-		width := w32.LOWORD(uint32(lParam))
-		height := w32.HIWORD(uint32(lParam))
-		app.OnResize(width, height)
+		width := uint32(w32.LOWORD(uint32(lParam)))
+		height := uint32(w32.HIWORD(uint32(lParam)))
+		app.onResize(width, height)
 		return 0
 	case w32.WM_DISPLAYCHANGE:
 		w32.InvalidateRect(app.hwnd, nil, false)
 		return 0
 	case w32.WM_PAINT:
-		app.OnRender()
+		app.onRender()
 		w32.ValidateRect(app.hwnd, nil)
 		return 0
 	case w32.WM_DESTROY:
 		w32.PostQuitMessage(0)
 		return 1
 	}
-
 	return w32.DefWindowProc(hwnd, msg, wParam, lParam)
-}
-
-func (app *DemoApp) OnResize(w, h uint16) {
-	if app.render_target != nil {
-		app.render_target.Resize(
-			&d2d.D2D1_SIZE_U{uint32(w), uint32(h)})
-	}
-}
-
-func (app *DemoApp) OnRender() {
-	app.CreateDeviceResources()
-	app.render_target.BeginDraw()
-	var identityMatrix = d2d.D2D1_MATRIX_3X2_F{
-		A11: 1.,
-		A22: 1.,
-	}
-	app.render_target.SetTransform(&identityMatrix)
-	var White = d2d.D2D1_COLOR_F{1, 1, 1, 1}
-	app.render_target.Clear(&White)
-	size := app.render_target.GetSize()
-	width := int(size.Width)
-	height := int(size.Height)
-	for x := 0; x < width; x += 10 {
-		app.render_target.DrawLine(
-			d2d.D2D1_POINT_2F{float32(x), 0},
-			d2d.D2D1_POINT_2F{float32(x), size.Height},
-			app.light_slate_gray_brush,
-			0.5,
-			nil)
-	}
-	for y := 0; y < height; y += 10 {
-		app.render_target.DrawLine(
-			d2d.D2D1_POINT_2F{0, float32(y)},
-			d2d.D2D1_POINT_2F{size.Width, float32(y)},
-			app.light_slate_gray_brush,
-			0.5,
-			nil)
-	}
-	rectangle1 := d2d.D2D1_RECT_F{
-		size.Width/2 - 50,
-		size.Height/2 - 50,
-		size.Width/2 + 50,
-		size.Height/2 + 50,
-	}
-	rectangle2 := d2d.D2D1_RECT_F{
-		size.Width/2 - 100,
-		size.Height/2 - 100,
-		size.Width/2 + 100,
-		size.Height/2 + 100,
-	}
-	app.render_target.FillRectangle(
-		&rectangle1,
-		app.light_slate_gray_brush)
-	app.render_target.DrawRectangle(
-		&rectangle2,
-		app.cornflower_blue,
-		1,
-		nil)
-	app.render_target.EndDraw()
-	if r := recover(); r != nil {
-		app.DiscardDeviceResources()
-	}
 }
 
 func main() {
 	w32.CoInitialize()
 	defer w32.CoUninitialize()
+
 	app := new(DemoApp)
 	defer app.Dispose()
+
 	app.Initialize()
 	app.RunMessageLoop()
 }
