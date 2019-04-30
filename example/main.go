@@ -4,17 +4,25 @@
 package main
 
 import (
+	"fmt"
 	"math"
-	"syscall"
 	"unsafe"
 
-	"github.com/AllenDang/w32"
+	"golang.org/x/sys/windows"
+
 	d2d "github.com/ysh86/go-d2d"
+	"github.com/ysh86/gui"
 )
 
 // DemoApp is the app
 type DemoApp struct {
-	hwnd                w32.HWND
+	instance windows.Handle
+	cmdLine  string
+	cmdShow  int32
+	atom     gui.Atom
+
+	hwnd windows.Handle
+
 	factory             *d2d.ID2D1Factory
 	renderTarget        *d2d.ID2D1HwndRenderTarget
 	lightSlateGrayBrush *d2d.ID2D1Brush
@@ -22,32 +30,50 @@ type DemoApp struct {
 }
 
 // Initialize registers the window class and call methods for instantiating drawing resources
-func (app *DemoApp) Initialize() {
+func (app *DemoApp) Initialize() error {
 	// Initialize device-indpendent resources, such
 	// as the Direct2D factory.
-	app.createDeviceIndependentResources()
+	err := app.createDeviceIndependentResources()
+	if err != nil {
+		return err
+	}
+
+	// dummy _tWinMain()
+	i, err := gui.GetModuleHandle(nil)
+	if err != nil {
+		return fmt.Errorf("GetModuleHandle: %v", err)
+	}
+	app.instance = i
+	app.cmdLine = ""
+	app.cmdShow = gui.SW_SHOWNORMAL
 
 	// Register the window class.
-	hInstance := w32.GetModuleHandle("")
-	icon := w32.LoadIcon(0, w32.MakeIntResource(w32.IDI_APPLICATION))
-	wndProc := func(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
-		return app.wndProc(hwnd, msg, wParam, lParam)
+	className := "D2DDemoApp"
+	classNameUTF16, err := windows.UTF16PtrFromString(className)
+	if err != nil {
+		return fmt.Errorf("UTF16PtrFromString %s: %v", className, err)
 	}
-	wndClass := w32.WNDCLASSEX{
-		Size:       uint32(unsafe.Sizeof(w32.WNDCLASSEX{})),
-		Style:      w32.CS_HREDRAW | w32.CS_VREDRAW,
-		WndProc:    syscall.NewCallback(wndProc),
+	//icon := w32.LoadIcon(0, w32.MakeIntResource(w32.IDI_APPLICATION))
+	wndClass := &gui.WndClassEx{
+		Size:       0,
+		Style:      gui.CS_HREDRAW | gui.CS_VREDRAW,
+		WndProc:    windows.NewCallback(app.wndProc),
 		ClsExtra:   0,
 		WndExtra:   0,
-		Instance:   hInstance,
-		Icon:       icon,
-		Cursor:     w32.LoadCursor(0, w32.MakeIntResource(w32.IDC_ARROW)),
-		Background: 0,
+		Instance:   app.instance,
+		Icon:       0, //icon,
+		Cursor:     0, //w32.LoadCursor(0, w32.MakeIntResource(w32.IDC_ARROW)), // LoadCursor(NULL, IDI_APPLICATION),
+		Background: windows.Handle(gui.COLOR_WINDOW + 1),
 		MenuName:   nil,
-		ClassName:  syscall.StringToUTF16Ptr("D2DDemoApp"),
-		IconSm:     icon,
+		ClassName:  classNameUTF16,
+		IconSm:     0, //icon,
 	}
-	w32.RegisterClassEx(&wndClass)
+	wndClass.Size = uint32(unsafe.Sizeof(*wndClass))
+	atom, err := gui.RegisterClassEx(wndClass)
+	if err != nil {
+		return fmt.Errorf("RegisterClassEx %v: %v", wndClass, err)
+	}
+	app.atom = atom
 
 	// Because the CreateWindow function takes its size in pixels,
 	// obtain the system DPI and use it to scale the window size.
@@ -56,25 +82,40 @@ func (app *DemoApp) Initialize() {
 	// to create its own windows.
 	dpiX, dpiY := app.factory.GetDesktopDpi()
 
-	app.hwnd = w32.CreateWindowEx(
+	windowName := "Direct2D Demo App"
+	windowNameUTF16, err := windows.UTF16PtrFromString(windowName)
+	if err != nil {
+		return fmt.Errorf("UTF16PtrFromString %s: %v", windowName, err)
+	}
+	w, err := gui.CreateWindowEx(
 		0,
-		syscall.StringToUTF16Ptr("D2DDemoApp"),
-		syscall.StringToUTF16Ptr("Hello Windows"),
-		w32.WS_OVERLAPPEDWINDOW,
-		w32.CW_USEDEFAULT,
-		w32.CW_USEDEFAULT,
-		int(math.Ceil(float64(640*dpiX/96))),
-		int(math.Ceil(float64(480*dpiY/96))),
+		(*uint16)(unsafe.Pointer(uintptr(app.atom))),
+		windowNameUTF16,
+		gui.WS_OVERLAPPEDWINDOW,
+		gui.CW_USEDEFAULT, gui.CW_USEDEFAULT, // x, y
+		int32(math.Ceil(float64(640.0*dpiX/96.0))), // width
+		int32(math.Ceil(float64(480.0*dpiY/96.0))), // height
 		0,
 		0,
-		hInstance,
-		nil)
-	w32.ShowWindow(app.hwnd, w32.SW_SHOW)
-	w32.UpdateWindow(app.hwnd)
+		app.instance,
+		uintptr(unsafe.Pointer(app)),
+	)
+	if err != nil {
+		return fmt.Errorf("CreateWindowEx: %v", err)
+	}
+	app.hwnd = w
+
+	_ = gui.ShowWindow(w, app.cmdShow) // ignore return value
+	err = gui.UpdateWindow(w)
+	if err != nil {
+		return fmt.Errorf("UpdateWindow: %v", err)
+	}
+
+	return nil
 }
 
-//Dispose releases resources
-func (app *DemoApp) Dispose() {
+// Deinitialize releases resources
+func (app *DemoApp) Deinitialize() {
 	if app.factory != nil {
 		app.factory.Release()
 		app.factory = nil
@@ -94,45 +135,68 @@ func (app *DemoApp) Dispose() {
 }
 
 // RunMessageLoop processes and dispatches messages
-func (app *DemoApp) RunMessageLoop() {
-	var msg w32.MSG
-	for w32.GetMessage(&msg, 0, 0, 0) > 0 {
-		w32.TranslateMessage(&msg)
-		w32.DispatchMessage(&msg)
+func (app *DemoApp) RunMessageLoop() (err error) {
+	var msg gui.Msg
+	for {
+		if result, e := gui.GetMessage(&msg, 0, 0, 0); e != nil || result == 0 {
+			err = e
+			break
+		}
+		gui.TranslateMessage(&msg)
+		gui.DispatchMessage(&msg)
 	}
+	return err
 }
 
 // private methods
 
-func (app *DemoApp) createDeviceIndependentResources() {
-	app.factory, _ = d2d.D2D1CreateFactory(d2d.D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
+func (app *DemoApp) createDeviceIndependentResources() (err error) {
+	app.factory, err = d2d.D2D1CreateFactory(d2d.D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
+	return
 }
 
-func (app *DemoApp) createDeviceResources() {
-	if app.renderTarget == nil {
-		rc := w32.GetClientRect(app.hwnd)
-		app.renderTarget, _ = app.factory.CreateHwndRenderTarget(
-			d2d.RenderTargetProperties(),
-			&d2d.D2D1_HWND_RENDER_TARGET_PROPERTIES{
-				Hwnd: uintptr(unsafe.Pointer(app.hwnd)),
-				PixelSize: d2d.D2D1_SIZE_U{
-					Width:  uint32(rc.Right - rc.Left),
-					Height: uint32(rc.Bottom - rc.Top)},
-				PresentOptions: d2d.D2D1_PRESENT_OPTIONS_NONE,
-			})
-
-		lightSlateGray := d2d.D2D1_COLOR_F{0x77 / 255., 0x88 / 255., 0x99 / 255., 1}
-		lightSlateGrayBrush, _ := app.renderTarget.CreateSolidColorBrush(
-			&lightSlateGray,
-			nil)
-		app.lightSlateGrayBrush = &(lightSlateGrayBrush.ID2D1Brush)
-
-		cornflowerBlue := d2d.D2D1_COLOR_F{0x64 / 255., 0x95 / 255., 0xED / 255., 1}
-		cornflowerBlueBrush, _ := app.renderTarget.CreateSolidColorBrush(
-			&cornflowerBlue,
-			nil)
-		app.cornflowerBlueBrush = &(cornflowerBlueBrush.ID2D1Brush)
+func (app *DemoApp) createDeviceResources() error {
+	if app.renderTarget != nil {
+		return nil // already created
 	}
+
+	var rc gui.Rect
+	err := gui.GetClientRect(app.hwnd, &rc)
+	if err != nil {
+		return err
+	}
+	app.renderTarget, err = app.factory.CreateHwndRenderTarget(
+		d2d.RenderTargetProperties(),
+		&d2d.D2D1_HWND_RENDER_TARGET_PROPERTIES{
+			Hwnd: uintptr(app.hwnd),
+			PixelSize: d2d.D2D1_SIZE_U{
+				Width:  uint32(rc.Right - rc.Left),
+				Height: uint32(rc.Bottom - rc.Top)},
+			PresentOptions: d2d.D2D1_PRESENT_OPTIONS_NONE,
+		})
+	if err != nil {
+		return err
+	}
+
+	lightSlateGray := d2d.D2D1_COLOR_F{R: 0x77 / 255., G: 0x88 / 255., B: 0x99 / 255., A: 1}
+	lightSlateGrayBrush, err := app.renderTarget.CreateSolidColorBrush(
+		&lightSlateGray,
+		nil)
+	if err != nil {
+		return err
+	}
+	app.lightSlateGrayBrush = &(lightSlateGrayBrush.ID2D1Brush)
+
+	cornflowerBlue := d2d.D2D1_COLOR_F{R: 0x64 / 255., G: 0x95 / 255., B: 0xED / 255., A: 1}
+	cornflowerBlueBrush, err := app.renderTarget.CreateSolidColorBrush(
+		&cornflowerBlue,
+		nil)
+	if err != nil {
+		return err
+	}
+	app.cornflowerBlueBrush = &(cornflowerBlueBrush.ID2D1Brush)
+
+	return nil
 }
 
 func (app *DemoApp) discardDeviceResources() {
@@ -151,7 +215,10 @@ func (app *DemoApp) discardDeviceResources() {
 }
 
 func (app *DemoApp) onRender() {
-	app.createDeviceResources()
+	err := app.createDeviceResources()
+	if err != nil {
+		return
+	}
 
 	app.renderTarget.BeginDraw()
 
@@ -161,7 +228,7 @@ func (app *DemoApp) onRender() {
 	}
 	app.renderTarget.SetTransform(&identityMatrix)
 
-	white := d2d.D2D1_COLOR_F{1, 1, 1, 1}
+	white := d2d.D2D1_COLOR_F{R: 1, G: 1, B: 1, A: 1}
 	app.renderTarget.Clear(&white)
 
 	size := app.renderTarget.GetSize()
@@ -171,16 +238,16 @@ func (app *DemoApp) onRender() {
 	height := int(size.Height)
 	for x := 0; x < width; x += 10 {
 		app.renderTarget.DrawLine(
-			d2d.D2D1_POINT_2F{float32(x), 0.0},
-			d2d.D2D1_POINT_2F{float32(x), size.Height},
+			d2d.D2D1_POINT_2F{X: float32(x), Y: 0.0},
+			d2d.D2D1_POINT_2F{X: float32(x), Y: size.Height},
 			app.lightSlateGrayBrush,
 			0.5,
 			nil)
 	}
 	for y := 0; y < height; y += 10 {
 		app.renderTarget.DrawLine(
-			d2d.D2D1_POINT_2F{0.0, float32(y)},
-			d2d.D2D1_POINT_2F{size.Width, float32(y)},
+			d2d.D2D1_POINT_2F{X: 0.0, Y: float32(y)},
+			d2d.D2D1_POINT_2F{X: size.Width, Y: float32(y)},
 			app.lightSlateGrayBrush,
 			0.5,
 			nil)
@@ -188,16 +255,16 @@ func (app *DemoApp) onRender() {
 
 	// Draw two rectangles.
 	rectangle1 := d2d.D2D1_RECT_F{
-		size.Width/2.0 - 50.0,
-		size.Height/2.0 - 50.0,
-		size.Width/2.0 + 50.0,
-		size.Height/2.0 + 50.0,
+		Left:   size.Width/2.0 - 50.0,
+		Top:    size.Height/2.0 - 50.0,
+		Right:  size.Width/2.0 + 50.0,
+		Bottom: size.Height/2.0 + 50.0,
 	}
 	rectangle2 := d2d.D2D1_RECT_F{
-		size.Width/2.0 - 100.0,
-		size.Height/2.0 - 100.0,
-		size.Width/2.0 + 100.0,
-		size.Height/2.0 + 100.0,
+		Left:   size.Width/2.0 - 100.0,
+		Top:    size.Height/2.0 - 100.0,
+		Right:  size.Width/2.0 + 100.0,
+		Bottom: size.Height/2.0 + 100.0,
 	}
 	// Draw a filled rectangle.
 	app.renderTarget.FillRectangle(
@@ -210,10 +277,7 @@ func (app *DemoApp) onRender() {
 		1,
 		nil)
 
-	app.renderTarget.EndDraw()
-
-	// TODO: error handling
-	var err error
+	_, _, err = app.renderTarget.EndDraw()
 	if err != nil {
 		app.discardDeviceResources()
 	}
@@ -222,41 +286,52 @@ func (app *DemoApp) onRender() {
 func (app *DemoApp) onResize(w, h uint32) {
 	if app.renderTarget != nil {
 		app.renderTarget.Resize(
-			&d2d.D2D1_SIZE_U{w, h})
+			&d2d.D2D1_SIZE_U{Width: w, Height: h})
 	}
 }
 
-func (app *DemoApp) wndProc(hwnd w32.HWND, msg uint32, wParam, lParam uintptr) uintptr {
-	if hwnd != app.hwnd {
-		return w32.DefWindowProc(hwnd, msg, wParam, lParam)
+func (app *DemoApp) wndProc(hwnd windows.Handle, msg uint32, wParam, lParam uintptr) uintptr {
+	if hwnd == app.hwnd {
+		switch msg {
+		case gui.WM_SIZE:
+			width := uint32(gui.LOWORD(lParam))
+			height := uint32(gui.HIWORD(lParam))
+			app.onResize(width, height)
+			return 0
+		case gui.WM_DISPLAYCHANGE:
+			gui.InvalidateRect(hwnd, nil, false)
+			return 0
+		case gui.WM_PAINT:
+			app.onRender()
+			gui.ValidateRect(hwnd, nil)
+			return 0
+		case gui.WM_DESTROY:
+			gui.PostQuitMessage(0)
+			return 1
+		}
 	}
-	switch msg {
-	case w32.WM_SIZE:
-		width := uint32(w32.LOWORD(uint32(lParam)))
-		height := uint32(w32.HIWORD(uint32(lParam)))
-		app.onResize(width, height)
-		return 0
-	case w32.WM_DISPLAYCHANGE:
-		w32.InvalidateRect(app.hwnd, nil, false)
-		return 0
-	case w32.WM_PAINT:
-		app.onRender()
-		w32.ValidateRect(app.hwnd, nil)
-		return 0
-	case w32.WM_DESTROY:
-		w32.PostQuitMessage(0)
-		return 1
-	}
-	return w32.DefWindowProc(hwnd, msg, wParam, lParam)
+
+	r, _ := gui.DefWindowProc(hwnd, msg, wParam, lParam)
+	return r
 }
 
 func main() {
-	w32.CoInitialize()
-	defer w32.CoUninitialize()
+	err := gui.CoInitializeEx(0, gui.COINIT_MULTITHREADED)
+	if err != nil {
+		panic(err)
+	}
+	defer gui.CoUninitialize()
 
 	app := new(DemoApp)
-	defer app.Dispose()
 
-	app.Initialize()
-	app.RunMessageLoop()
+	err = app.Initialize()
+	if err != nil {
+		panic(err)
+	}
+	defer app.Deinitialize()
+
+	err = app.RunMessageLoop()
+	if err != nil {
+		panic(err)
+	}
 }
