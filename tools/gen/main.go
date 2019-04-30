@@ -12,7 +12,7 @@ import (
 )
 
 func usage() {
-	fmt.Println("gen <struct|enum> <name>")
+	fmt.Println("gen <struct|enum|interface> <name>")
 }
 
 func main() {
@@ -40,5 +40,7 @@ func main() {
 		p.ParseEnum(b, name)
 	case "interface":
 		p.ParseInterface(b, name)
+	default:
+		panic(what)
 	}
 }

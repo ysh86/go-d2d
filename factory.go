@@ -1,6 +1,4 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// +build windows
 
 package d2d
 
@@ -15,307 +13,271 @@ var IID_ID2D1Factory = GUID{0x06152247, 0x6f50, 0x465a, [8]byte{0x92, 0x45, 0x11
 
 type ID2D1FactoryVtbl struct {
 	IUnknownVtbl
-	pReloadSystemMetrics            uintptr
-	pGetDesktopDpi                  uintptr
-	pCreateRectangleGeometry        uintptr
-	pCreateRoundedRectangleGeometry uintptr
-	pCreateEllipseGeometry          uintptr
-	pCreateGeometryGroup            uintptr
-	pCreateTransformedGeometry      uintptr
-	pCreatePathGeometry             uintptr
-	pCreateStrokeStyle              uintptr
-	pCreateDrawingStateBlock        uintptr
-	pCreateWicBitmapRenderTarget    uintptr
-	pCreateHwndRenderTarget         uintptr
-	pCreateDxgiSurfaceRenderTarget  uintptr
-	pCreateDCRenderTarget           uintptr
+	ReloadSystemMetrics            uintptr
+	GetDesktopDpi                  uintptr
+	CreateRectangleGeometry        uintptr
+	CreateRoundedRectangleGeometry uintptr
+	CreateEllipseGeometry          uintptr
+	CreateGeometryGroup            uintptr
+	CreateTransformedGeometry      uintptr
+	CreatePathGeometry             uintptr
+	CreateStrokeStyle              uintptr
+	CreateDrawingStateBlock        uintptr
+	CreateWicBitmapRenderTarget    uintptr
+	CreateHwndRenderTarget         uintptr
+	CreateDxgiSurfaceRenderTarget  uintptr
+	CreateDCRenderTarget           uintptr
 }
 
 type ID2D1Factory struct {
-	*ID2D1FactoryVtbl
+	IUnknown
 }
 
-type ID2D1FactoryPtr struct {
-	*ID2D1Factory
+func (obj *ID2D1Factory) vtbl() *ID2D1FactoryVtbl {
+	return (*ID2D1FactoryVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1FactoryPtr) GUID() *GUID {
-	return &IID_ID2D1Factory
-}
-
-func (this ID2D1FactoryPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1Factory))
-}
-
-func (this *ID2D1FactoryPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1Factory = (*ID2D1Factory)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1FactoryVtbl) ReloadSystemMetrics(
-	ptr ComObjectPtr) {
+func (obj *ID2D1Factory) ReloadSystemMetrics() (
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pReloadSystemMetrics,
+		obj.vtbl().ReloadSystemMetrics,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call ReloadSystemMetrics: %#x", ret))
+		err = fmt.Errorf("Fail to call ReloadSystemMetrics: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1FactoryVtbl) GetDesktopDpi(
-	ptr ComObjectPtr) (dpiX, dpiY float32) {
+func (obj *ID2D1Factory) GetDesktopDpi() (
+	dpiX float32,
+	dpiY float32) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetDesktopDpi,
+		obj.vtbl().GetDesktopDpi,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&dpiX)),
 		uintptr(unsafe.Pointer(&dpiY)))
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateRectangleGeometry(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateRectangleGeometry(
 	rectangle *D2D1_RECT_F) (
-	rectangleGeometry ID2D1RectangleGeometryPtr) {
-	var out uintptr
+	rectangleGeometry *ID2D1RectangleGeometry,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pCreateRectangleGeometry,
+		obj.vtbl().CreateRectangleGeometry,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(rectangle)),
-		uintptr(unsafe.Pointer(&out)))
+		uintptr(unsafe.Pointer(&rectangleGeometry)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateRectangleGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateRectangleGeometry: %#x", ret)
 	}
-	(&rectangleGeometry).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateRoundedRectangleGeometry(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateRoundedRectangleGeometry(
 	roundedRectangle *D2D1_ROUNDED_RECT) (
-	roundedRectangleGeometry ID2D1RoundedRectangleGeometryPtr) {
-	var out uintptr
+	roundedRectangleGeometry *ID2D1RoundedRectangleGeometry,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pCreateRoundedRectangleGeometry,
+		obj.vtbl().CreateRoundedRectangleGeometry,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(roundedRectangle)),
-		uintptr(unsafe.Pointer(&out)))
+		uintptr(unsafe.Pointer(&roundedRectangleGeometry)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateRoundedRectangleGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateRoundedRectangleGeometry: %#x", ret)
 	}
-	(&roundedRectangleGeometry).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateEllipseGeometry(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateEllipseGeometry(
 	ellipse *D2D1_ELLIPSE) (
-	ellipseGeometry ID2D1EllipseGeometryPtr) {
-	var out uintptr
+	ellipseGeometry *ID2D1EllipseGeometry,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pCreateEllipseGeometry,
+		obj.vtbl().CreateEllipseGeometry,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(ellipse)),
-		uintptr(unsafe.Pointer(out)))
+		uintptr(unsafe.Pointer(&ellipseGeometry)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateEllipseGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateEllipseGeometry: %#x", ret)
 	}
-	(&ellipseGeometry).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateGeometryGroup(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateGeometryGroup(
 	fillMode D2D1_FILL_MODE,
-	geometries []ID2D1GeometryPtr) (
-	geometryGroup ID2D1GeometryGroupPtr) {
-	var out uintptr
+	geometries []*ID2D1Geometry) (
+	geometryGroup *ID2D1GeometryGroup,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateGeometryGroup,
+		obj.vtbl().CreateGeometryGroup,
 		5,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(fillMode),
 		uintptr(unsafe.Pointer(&(geometries[0]))),
-		uintptr(uint32(len(geometries))),
-		uintptr(unsafe.Pointer(out)),
+		uintptr(len(geometries)),
+		uintptr(unsafe.Pointer(&geometryGroup)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateGeometryGroup: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateGeometryGroup: %#x", ret)
 	}
-	(&geometryGroup).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateTransformedGeometry(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateTransformedGeometry(
 	sourceGeometry *ID2D1Geometry,
 	transform *D2D1_MATRIX_3X2_F) (
-	transformedGeometry ID2D1TransformedGeometryPtr) {
-	var out uintptr
+	transformedGeometry *ID2D1TransformedGeometry,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateTransformedGeometry,
+		obj.vtbl().CreateTransformedGeometry,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(sourceGeometry)),
 		uintptr(unsafe.Pointer(transform)),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(&transformedGeometry)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateTransformedGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateTransformedGeometry: %#x", ret)
 	}
-	(&transformedGeometry).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreatePathGeometry(
-	ptr ComObjectPtr) (
-	pathGeometry ID2D1PathGeometryPtr) {
-	var out uintptr
+func (obj *ID2D1Factory) CreatePathGeometry() (
+	pathGeometry *ID2D1PathGeometry,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pCreatePathGeometry,
+		obj.vtbl().CreatePathGeometry,
 		2,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&pathGeometry)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreatePathGeometry: %#x", ret))
+		err = fmt.Errorf("Fail to call CreatePathGeometry: %#x", ret)
 	}
-	(&pathGeometry).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateStrokeStyle(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateStrokeStyle(
 	strokeStyleProperties *D2D1_STROKE_STYLE_PROPERTIES,
-	dashes []float32) (strokeStyle ID2D1StrokeStylePtr) {
-	var out uintptr
+	dashes []float32) (
+	strokeStyle *ID2D1StrokeStyle,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateStrokeStyle,
+		obj.vtbl().CreateStrokeStyle,
 		5,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(strokeStyleProperties)),
-		uintptr(unsafe.Pointer(&dashes[0])),
+		uintptr(unsafe.Pointer(&(dashes[0]))),
 		uintptr(len(dashes)),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(&strokeStyle)),
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateStrokeStyle: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateStrokeStyle: %#x", ret)
 	}
-	(&strokeStyle).SetRawPtr(out)
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateDrawingStateBlock(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateDrawingStateBlock(
 	drawingStateDescription *D2D1_DRAWING_STATE_DESCRIPTION,
-	// *IDWriteRenderingParams
-	textRenderingParams unsafe.Pointer) (drawingStateBlock ID2D1DrawingStateBlockPtr) {
-	var out uintptr
+	textRenderingParams *IDWriteRenderingParams) (
+	drawingStateBlock *ID2D1DrawingStateBlock,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateDrawingStateBlock,
+		obj.vtbl().CreateDrawingStateBlock,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(drawingStateDescription)),
-		uintptr(textRenderingParams),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(textRenderingParams)),
+		uintptr(unsafe.Pointer(&drawingStateBlock)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateDrawingStateBlock: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateDrawingStateBlock: %#x", ret)
 	}
-	(&drawingStateBlock).SetRawPtr(out)
 	return
 }
 
-/*
-func (this *ID2D1FactoryVtbl) CreateWicBitmapRenderTarget(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateWicBitmapRenderTarget(
 	target *IWICBitmap,
-	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES,
-	renderTarget **ID2D1RenderTarget)
-	(HRESULT) {
+	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES) (
+	renderTarget *ID2D1RenderTarget,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateWicBitmapRenderTarget,
+		obj.vtbl().CreateWicBitmapRenderTarget,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(target)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),
-		uintptr(unsafe.Pointer(renderTarget)),
+		uintptr(unsafe.Pointer(&renderTarget)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateWicBitmapRenderTarget: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateWicBitmapRenderTarget: %#x", ret)
 	}
 	return
 }
-*/
 
-func (this *ID2D1FactoryVtbl) CreateHwndRenderTarget(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateHwndRenderTarget(
 	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES,
 	hwndRenderTargetProperties *D2D1_HWND_RENDER_TARGET_PROPERTIES) (
-	hwndRenderTarget ID2D1HwndRenderTargetPtr) {
-	var out uintptr
+	hwndRenderTarget *ID2D1HwndRenderTarget,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateHwndRenderTarget,
+		obj.vtbl().CreateHwndRenderTarget,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),
 		uintptr(unsafe.Pointer(hwndRenderTargetProperties)),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(&hwndRenderTarget)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateHwndRenderTarget: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateHwndRenderTarget: %#x", ret)
 	}
-	(&hwndRenderTarget).SetRawPtr(out)
 	return
 }
 
-/*
-func (this *ID2D1FactoryVtbl) CreateDxgiSurfaceRenderTarget(
-	ptr ComObjectPtr,
+func (obj *ID2D1Factory) CreateDxgiSurfaceRenderTarget(
 	dxgiSurface *IDXGISurface,
-	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES,
-	renderTarget **ID2D1RenderTarget)
-	(HRESULT) {
+	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES) (
+	renderTarget *ID2D1RenderTarget,
+	err error) {
 	var ret, _, _ = syscall.Syscall6(
-		this.pCreateDxgiSurfaceRenderTarget,
+		obj.vtbl().CreateDxgiSurfaceRenderTarget,
 		4,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(dxgiSurface)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),
-		uintptr(unsafe.Pointer(renderTarget)),
+		uintptr(unsafe.Pointer(&renderTarget)),
 		0,
 		0)
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateDxgiSurfaceRenderTarget: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateDxgiSurfaceRenderTarget: %#x", ret)
 	}
 	return
 }
 
-func (this *ID2D1FactoryVtbl) CreateDCRenderTarget(
-	ptr ComObjectPtr,
-	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES,
-	dcRenderTarget **ID2D1DCRenderTarget)
-	(HRESULT) {
+func (obj *ID2D1Factory) CreateDCRenderTarget(
+	renderTargetProperties *D2D1_RENDER_TARGET_PROPERTIES) (
+	dcRenderTarget *ID2D1DCRenderTarget,
+	err error) {
 	var ret, _, _ = syscall.Syscall(
-		this.pCreateDCRenderTarget,
+		obj.vtbl().CreateDCRenderTarget,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(renderTargetProperties)),
-		uintptr(unsafe.Pointer(dcRenderTarget)))
+		uintptr(unsafe.Pointer(&dcRenderTarget)))
 	if ret != S_OK {
-		panic(fmt.Sprintf("Fail to call CreateDCRenderTarget: %#x", ret))
+		err = fmt.Errorf("Fail to call CreateDCRenderTarget: %#x", ret)
 	}
 	return
 }
-
-*/

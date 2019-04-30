@@ -1,6 +1,4 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// +build windows
 
 package d2d
 
@@ -14,135 +12,130 @@ var IID_ID2D1StrokeStyle = GUID{0x2cd9069d, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 
 
 type ID2D1StrokeStyleVtbl struct {
 	ID2D1ResourceVtbl
-	pGetStartCap    uintptr
-	pGetEndCap      uintptr
-	pGetDashCap     uintptr
-	pGetMiterLimit  uintptr
-	pGetLineJoin    uintptr
-	pGetDashOffset  uintptr
-	pGetDashStyle   uintptr
-	pGetDashesCount uintptr
-	pGetDashes      uintptr
+	GetStartCap    uintptr
+	GetEndCap      uintptr
+	GetDashCap     uintptr
+	GetMiterLimit  uintptr
+	GetLineJoin    uintptr
+	GetDashOffset  uintptr
+	GetDashStyle   uintptr
+	GetDashesCount uintptr
+	GetDashes      uintptr
 }
 
 type ID2D1StrokeStyle struct {
-	*ID2D1StrokeStyleVtbl
+	ID2D1Resource
 }
 
-type ID2D1StrokeStylePtr struct {
-	*ID2D1StrokeStyle
+func (obj *ID2D1StrokeStyle) vtbl() *ID2D1StrokeStyleVtbl {
+	return (*ID2D1StrokeStyleVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1StrokeStylePtr) GUID() *GUID {
-	return &IID_ID2D1StrokeStyle
-}
-
-func (this ID2D1StrokeStylePtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1StrokeStyle))
-}
-
-func (this *ID2D1StrokeStylePtr) SetRawPtr(raw uintptr) {
-	this.ID2D1StrokeStyle = (*ID2D1StrokeStyle)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1StrokeStyleVtbl) GetStartCap(
-	ptr ComObjectPtr) D2D1_CAP_STYLE {
+func (obj *ID2D1StrokeStyle) GetStartCap() (
+	result D2D1_CAP_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetStartCap,
+		obj.vtbl().GetStartCap,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return D2D1_CAP_STYLE(ret)
+	result = (D2D1_CAP_STYLE)(ret)
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetEndCap(
-	ptr ComObjectPtr) D2D1_CAP_STYLE {
+func (obj *ID2D1StrokeStyle) GetEndCap() (
+	result D2D1_CAP_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetEndCap,
+		obj.vtbl().GetEndCap,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return D2D1_CAP_STYLE(ret)
+	result = (D2D1_CAP_STYLE)(ret)
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetDashCap(
-	ptr ComObjectPtr) D2D1_CAP_STYLE {
+func (obj *ID2D1StrokeStyle) GetDashCap() (
+	result D2D1_CAP_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetDashCap,
+		obj.vtbl().GetDashCap,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return D2D1_CAP_STYLE(ret)
+	result = (D2D1_CAP_STYLE)(ret)
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetMiterLimit(
-	ptr ComObjectPtr) float32 {
+func (obj *ID2D1StrokeStyle) GetMiterLimit() (
+	result float32) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetMiterLimit,
+		obj.vtbl().GetMiterLimit,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return *(*float32)(unsafe.Pointer(&ret))
+	ret32 := uint32(ret)
+	result = *(*float32)(unsafe.Pointer(&ret32))
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetLineJoin(
-	ptr ComObjectPtr) D2D1_LINE_JOIN {
+func (obj *ID2D1StrokeStyle) GetLineJoin() (
+	result D2D1_LINE_JOIN) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetLineJoin,
+		obj.vtbl().GetLineJoin,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return D2D1_LINE_JOIN(ret)
+	result = (D2D1_LINE_JOIN)(ret)
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetDashOffset(
-	ptr ComObjectPtr) float32 {
+func (obj *ID2D1StrokeStyle) GetDashOffset() (
+	result float32) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetDashOffset,
+		obj.vtbl().GetDashOffset,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return *(*float32)(unsafe.Pointer(&ret))
+	ret32 := uint32(ret)
+	result = *(*float32)(unsafe.Pointer(&ret32))
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetDashStyle(
-	ptr ComObjectPtr) D2D1_DASH_STYLE {
+func (obj *ID2D1StrokeStyle) GetDashStyle() (
+	result D2D1_DASH_STYLE) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetDashStyle,
+		obj.vtbl().GetDashStyle,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return D2D1_DASH_STYLE(ret)
+	result = (D2D1_DASH_STYLE)(ret)
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetDashesCount(
-	ptr ComObjectPtr) uint32 {
+func (obj *ID2D1StrokeStyle) GetDashesCount() (
+	result uint32) {
 	var ret, _, _ = syscall.Syscall(
-		this.pGetDashesCount,
+		obj.vtbl().GetDashesCount,
 		1,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		0,
 		0)
-	return uint32(ret)
+	result = (uint32)(ret)
+	return
 }
 
-func (this *ID2D1StrokeStyleVtbl) GetDashes(
-	ptr ComObjectPtr,
-	dashesCount uint32) (
+func (obj *ID2D1StrokeStyle) GetDashes(
 	dashes []float32) {
-	dashes = make([]float32, int(dashesCount))
 	var _, _, _ = syscall.Syscall(
-		this.pGetDashes,
+		obj.vtbl().GetDashes,
 		3,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&(dashes[0]))),
-		uintptr(dashesCount))
+		uintptr(len(dashes)))
 	return
 }

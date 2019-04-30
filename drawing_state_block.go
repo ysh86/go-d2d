@@ -1,6 +1,4 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// +build windows
 
 package d2d
 
@@ -14,82 +12,60 @@ var IID_ID2D1DrawingStateBlock = GUID{0x28506e39, 0xebf6, 0x46a1, [8]byte{0xbb, 
 
 type ID2D1DrawingStateBlockVtbl struct {
 	ID2D1ResourceVtbl
-	pGetDescription         uintptr
-	pSetDescription         uintptr
-	pSetTextRenderingParams uintptr
-	pGetTextRenderingParams uintptr
+	GetDescription         uintptr
+	SetDescription         uintptr
+	SetTextRenderingParams uintptr
+	GetTextRenderingParams uintptr
 }
 
 type ID2D1DrawingStateBlock struct {
-	*ID2D1DrawingStateBlockVtbl
+	ID2D1Resource
 }
 
-type ID2D1DrawingStateBlockPtr struct {
-	*ID2D1DrawingStateBlock
+func (obj *ID2D1DrawingStateBlock) vtbl() *ID2D1DrawingStateBlockVtbl {
+	return (*ID2D1DrawingStateBlockVtbl)(obj.unsafeVtbl)
 }
 
-func (this ID2D1DrawingStateBlockPtr) GUID() *GUID {
-	return &IID_ID2D1DrawingStateBlock
-}
-
-func (this ID2D1DrawingStateBlockPtr) RawPtr() uintptr {
-	return uintptr(unsafe.Pointer(this.ID2D1DrawingStateBlock))
-}
-
-func (this *ID2D1DrawingStateBlockPtr) SetRawPtr(raw uintptr) {
-	this.ID2D1DrawingStateBlock = (*ID2D1DrawingStateBlock)(unsafe.Pointer(raw))
-}
-
-func (this *ID2D1DrawingStateBlockVtbl) GetDescription(
-	ptr ComObjectPtr) (stateDescription D2D1_DRAWING_STATE_DESCRIPTION) {
+func (obj *ID2D1DrawingStateBlock) GetDescription() (
+	stateDescription D2D1_DRAWING_STATE_DESCRIPTION) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetDescription,
+		obj.vtbl().GetDescription,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(&stateDescription)),
 		0)
-
 	return
 }
 
-func (this *ID2D1DrawingStateBlockVtbl) SetDescription(
-	ptr ComObjectPtr,
+func (obj *ID2D1DrawingStateBlock) SetDescription(
 	stateDescription *D2D1_DRAWING_STATE_DESCRIPTION) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetDescription,
+		obj.vtbl().SetDescription,
 		2,
-		ptr.RawPtr(),
+		uintptr(unsafe.Pointer(obj)),
 		uintptr(unsafe.Pointer(stateDescription)),
 		0)
-
 	return
 }
 
-func (this *ID2D1DrawingStateBlockVtbl) SetTextRenderingParams(
-	ptr ComObjectPtr,
-	// *IDWriteRenderingParams
-	textRenderingParams unsafe.Pointer) {
+func (obj *ID2D1DrawingStateBlock) SetTextRenderingParams(
+	textRenderingParams *IDWriteRenderingParams) {
 	var _, _, _ = syscall.Syscall(
-		this.pSetTextRenderingParams,
+		obj.vtbl().SetTextRenderingParams,
 		2,
-		ptr.RawPtr(),
-		uintptr(textRenderingParams),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(textRenderingParams)),
 		0)
-
 	return
 }
 
-func (this *ID2D1DrawingStateBlockVtbl) GetTextRenderingParams(
-	ptr ComObjectPtr) (
-	// *IDWriteRenderingParams
-	textRenderingParams unsafe.Pointer) {
-	var out uintptr
+func (obj *ID2D1DrawingStateBlock) GetTextRenderingParams() (
+	textRenderingParams *IDWriteRenderingParams) {
 	var _, _, _ = syscall.Syscall(
-		this.pGetTextRenderingParams,
+		obj.vtbl().GetTextRenderingParams,
 		2,
-		ptr.RawPtr(),
-		uintptr(unsafe.Pointer(&out)),
+		uintptr(unsafe.Pointer(obj)),
+		uintptr(unsafe.Pointer(&textRenderingParams)),
 		0)
-	textRenderingParams = unsafe.Pointer(out)
 	return
 }
