@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -315,8 +316,13 @@ func (app *DemoApp) wndProc(hwnd windows.Handle, msg uint32, wParam, lParam uint
 	return r
 }
 
+func init() {
+	// COM & UI loop have to be on the main thread.
+	runtime.LockOSThread()
+}
+
 func main() {
-	err := gui.CoInitializeEx(0, gui.COINIT_MULTITHREADED)
+	err := gui.CoInitializeEx(0, gui.COINIT_APARTMENTTHREADED|gui.COINIT_DISABLE_OLE1DDE)
 	if err != nil {
 		panic(err)
 	}
