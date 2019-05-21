@@ -1,6 +1,3 @@
-// Creating a Simple Direct2D Application
-// https://docs.microsoft.com/en-us/windows/desktop/direct2d/direct2d-quickstart
-
 package main
 
 import (
@@ -10,10 +7,15 @@ import (
 
 	d2d "github.com/ysh86/go-d2d"
 	"github.com/ysh86/gui"
+	"github.com/ysh86/svg"
 )
 
-type d2d1Renderer struct {
+type svgRenderer struct {
 	factory *d2d.ID2D1Factory
+
+	// doc
+	svg           *svg.Root
+	geometryGroup *d2d.ID2D1GeometryGroup
 
 	dpiX float32
 	dpiY float32
@@ -23,12 +25,12 @@ type d2d1Renderer struct {
 	cornflowerBlueBrush *d2d.ID2D1Brush
 }
 
-func NewD2D1Renderer() (*d2d1Renderer, error) {
-	return &d2d1Renderer{}, nil
+func NewSVGRenderer(svg *svg.Root) (*svgRenderer, error) {
+	return &svgRenderer{svg: svg}, nil
 }
 
 // Init calls methods for instantiating drawing resources
-func (r *d2d1Renderer) Init() error {
+func (r *svgRenderer) Init() error {
 	err := gui.CoInitializeEx(0, gui.COINIT_APARTMENTTHREADED|gui.COINIT_DISABLE_OLE1DDE)
 	if err != nil {
 		return fmt.Errorf("CoInitializeEx")
@@ -49,8 +51,14 @@ func (r *d2d1Renderer) Init() error {
 }
 
 // Deinit releases resources
-func (r *d2d1Renderer) Deinit() {
+func (r *svgRenderer) Deinit() {
 	r.discardDeviceResources()
+
+	if r.geometryGroup != nil {
+		r.geometryGroup.Release()
+		r.geometryGroup = nil
+	}
+	r.svg = nil
 
 	if r.factory != nil {
 		r.factory.Release()
@@ -60,11 +68,11 @@ func (r *d2d1Renderer) Deinit() {
 	gui.CoUninitialize()
 }
 
-func (r *d2d1Renderer) Dpi() (float32, float32) {
+func (r *svgRenderer) Dpi() (float32, float32) {
 	return r.dpiX, r.dpiY
 }
 
-func (r *d2d1Renderer) Update(width, height uint32) error {
+func (r *svgRenderer) Update(width, height uint32) error {
 	if r.renderTarget != nil {
 		r.renderTarget.Resize(
 			&d2d.D2D1_SIZE_U{Width: width, Height: height})
@@ -73,7 +81,7 @@ func (r *d2d1Renderer) Update(width, height uint32) error {
 	return nil
 }
 
-func (r *d2d1Renderer) Draw(nativeWindow uintptr) error {
+func (r *svgRenderer) Draw(nativeWindow uintptr) error {
 	err := r.createDeviceResources(nativeWindow)
 	if err != nil {
 		return err
@@ -81,14 +89,93 @@ func (r *d2d1Renderer) Draw(nativeWindow uintptr) error {
 
 	r.renderTarget.BeginDraw()
 
-	identityMatrix := d2d.D2D1_MATRIX_3X2_F{
-		A11: 1.,
-		A22: 1.,
-	}
-	r.renderTarget.SetTransform(&identityMatrix)
-
 	white := d2d.D2D1_COLOR_F{R: 1, G: 1, B: 1, A: 1}
-	r.renderTarget.Clear(&white)
+	//black := d2d.D2D1_COLOR_F{R: 0, G: 0, B: 0, A: 1}
+
+	for _, g := range r.svg.Groups {
+		// SVG
+		// a c e   x   ax + cy + e
+		// b d f . y = bx + dy + f
+		// 0 0 1   1   0  + 0  + 1
+		//
+		// D2D
+		//             A11 A12 0
+		// (x, y, 1) * A21 A22 0 = (A11x + A21y + A31, A12x + A22y + A32, 1)
+		//             A31 A32 1
+		matrix := d2d.D2D1_MATRIX_3X2_F{
+			A11: g.Transform.A,
+			A12: g.Transform.B,
+			A21: g.Transform.C,
+			A22: g.Transform.D,
+			A31: g.Transform.E,
+			A32: g.Transform.F,
+		}
+		r.renderTarget.SetTransform(&matrix)
+		r.renderTarget.Clear(&white) // TODO: 本当は none & layer 追加の方がいいか
+		/*
+			for _, gg := range g.Groups {
+				stroke := d2d.D2D1_COLOR_F{
+					R: float32(gg.Stroke.R) / 255.,
+					G: float32(gg.Stroke.G) / 255.,
+					B: float32(gg.Stroke.B) / 255.,
+					A: float32(gg.Stroke.A) / 255.,
+				}
+				strokeBrush, err := r.renderTarget.CreateSolidColorBrush(
+					&stroke,
+					nil)
+				if err != nil {
+					r.discardDeviceResources()
+					panic(err)
+				}
+				defer strokeBrush.Release()
+
+				for _, p := range gg.Paths {
+					sink, err := r.geometryGroup.Open()
+					if err != nil {
+						r.discardDeviceResources()
+						panic(err)
+					}
+					for _, c := range p.D {
+					}
+					// TODO: gg.Fill
+					sink.Close()
+
+					r.renderTarget.DrawGeometry(
+						&(r.geometryGroup.ID2D1Geometry),
+						&(strokeBrush.ID2D1Brush),
+						gg.StrokeWidth,
+						nil)
+
+				}
+			}
+		*/
+		gg := g.Groups[0]
+		stroke := d2d.D2D1_COLOR_F{
+			R: float32(gg.Stroke.R) / 255.,
+			G: float32(gg.Stroke.G) / 255.,
+			B: float32(gg.Stroke.B) / 255.,
+			A: float32(gg.Stroke.A) / 255.,
+		}
+		strokeBrush, err := r.renderTarget.CreateSolidColorBrush(
+			&stroke,
+			nil)
+		if err != nil {
+			r.discardDeviceResources()
+			panic(err)
+		}
+		defer strokeBrush.Release()
+		r.renderTarget.DrawGeometry(
+			&(r.geometryGroup.ID2D1Geometry),
+			&(strokeBrush.ID2D1Brush),
+			gg.StrokeWidth,
+			nil)
+
+		_, _, err = r.renderTarget.EndDraw()
+		if err != nil {
+			r.discardDeviceResources()
+		}
+		return nil
+	}
 
 	size := r.renderTarget.GetSize()
 
@@ -146,12 +233,116 @@ func (r *d2d1Renderer) Draw(nativeWindow uintptr) error {
 
 // private methods
 
-func (r *d2d1Renderer) createDeviceIndependentResources() (err error) {
+func (r *svgRenderer) createDeviceIndependentResources() (err error) {
 	r.factory, err = d2d.D2D1CreateFactory(d2d.D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
+
+	if r.svg == nil {
+		return
+	}
+
+	gs := make([]*d2d.ID2D1Geometry, 0, len(r.svg.Groups))
+	for _, g := range r.svg.Groups {
+		ggs := make([]*d2d.ID2D1Geometry, 0, len(g.Groups))
+		for _, gg := range g.Groups {
+			ps := make([]*d2d.ID2D1Geometry, 0, len(gg.Paths))
+			for _, p := range gg.Paths {
+				if len(p.D) < 1 {
+					continue
+				}
+				path, err := r.factory.CreatePathGeometry()
+				if err != nil {
+					panic(err)
+				}
+				sink, err := path.Open()
+				if err != nil {
+					panic(err)
+				}
+
+				// TODO: gg.Fill
+				sink.SetFillMode(d2d.D2D1_FILL_MODE_WINDING)
+
+				// SVG M
+				pre := p.D[0]
+				if pre.Command != "M" && pre.Command != "m" {
+					continue
+				}
+				if len(pre.Points) < 1 {
+					continue
+				}
+				prePoint := d2d.D2D1_POINT_2F{
+					X: pre.Points[0].X,
+					Y: pre.Points[0].Y,
+				}
+				sink.BeginFigure(prePoint, d2d.D2D1_FIGURE_BEGIN_FILLED)
+				// lines
+				for _, svgPoint := range pre.Points[1:] {
+					point := d2d.D2D1_POINT_2F{
+						X: svgPoint.X,
+						Y: svgPoint.Y,
+					}
+
+					if pre.Command == "m" {
+						point.X += prePoint.X
+						point.Y += prePoint.Y
+					}
+					prePoint = point
+
+					sink.AddLine(point)
+				}
+
+				for _, c := range p.D[1:] {
+					point := d2d.D2D1_POINT_2F{
+						//X: c.Points[0].X,
+						//Y: c.Points[0].Y,
+					}
+					prePoint = point
+					pre = c
+					// SVG L,H,V
+					////sink.AddLine(pos1)
+					// SVG S,C
+					////sink.AddBezier(d2d.BezierSegment(c2, c3, c4))
+				}
+
+				// SVG Z
+				if pre.Command == "Z" || pre.Command == "z" {
+					sink.EndFigure(d2d.D2D1_FIGURE_END_CLOSED)
+				} else {
+					sink.EndFigure(d2d.D2D1_FIGURE_END_OPEN)
+				}
+
+				sink.Close()
+				ps = append(ps, &(path.ID2D1Geometry))
+			}
+			group, err := r.factory.CreateGeometryGroup(
+				d2d.D2D1_FILL_MODE_WINDING,
+				ps,
+			)
+			if err != nil {
+				panic(err)
+			}
+			ggs = append(ggs, &(group.ID2D1Geometry))
+		}
+		group, err := r.factory.CreateGeometryGroup(
+			d2d.D2D1_FILL_MODE_WINDING,
+			ggs,
+		)
+		if err != nil {
+			panic(err)
+		}
+		gs = append(gs, &(group.ID2D1Geometry))
+	}
+	r.geometryGroup, err = r.factory.CreateGeometryGroup(
+		d2d.D2D1_FILL_MODE_WINDING,
+		gs,
+	)
+	if err != nil {
+		panic(err)
+	}
+
 	return
 }
 
-func (r *d2d1Renderer) createDeviceResources(nativeWindow uintptr) error {
+func (r *svgRenderer) createDeviceResources(nativeWindow uintptr) error {
 	if r.renderTarget != nil {
 		return nil // already created
 	}
@@ -197,7 +388,7 @@ func (r *d2d1Renderer) createDeviceResources(nativeWindow uintptr) error {
 	return nil
 }
 
-func (r *d2d1Renderer) discardDeviceResources() {
+func (r *svgRenderer) discardDeviceResources() {
 	if r.renderTarget != nil {
 		r.renderTarget.Release()
 		r.renderTarget = nil

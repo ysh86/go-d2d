@@ -1,13 +1,26 @@
 package main
 
 import (
+	"encoding/xml"
 	"fmt"
 	"os"
 
 	"github.com/ysh86/gui"
+	"github.com/ysh86/svg"
 )
 
 func main() {
+	// load
+	dec := xml.NewDecoder(os.Stdin)
+
+	svg := new(svg.Root)
+	err := svg.Parse(dec)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("load done")
+
+	// app
 	app := gui.NewApplication()
 
 	if err := app.Init(); err != nil {
@@ -15,13 +28,20 @@ func main() {
 	}
 	defer app.Deinit()
 
-	renderer, err := NewD2D1Renderer()
+	// renderer
+	// TODO: logger
+	renderer, err := NewSVGRenderer(svg)
 	if err != nil {
 		panic(err)
 	}
 
-	windowName := "Direct2D Demo App"
-	errc := app.Loop(windowName, 640, 480, renderer)
+	// run
+	windowName := "Direct2D SVG Viewer"
+	errc := app.Loop(
+		windowName,
+		int32(svg.ViewBox.Width),
+		int32(svg.ViewBox.Height),
+		renderer)
 	select {
 	case e := <-errc:
 		if e != nil {
