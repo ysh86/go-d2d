@@ -54,7 +54,14 @@ func (app *DemoApp) Initialize() error {
 	if err != nil {
 		return fmt.Errorf("UTF16PtrFromString %s: %v", className, err)
 	}
-	//icon := w32.LoadIcon(0, w32.MakeIntResource(w32.IDI_APPLICATION))
+	icon, err := gui.LoadIcon(0, gui.MAKEINTRESOURCE(gui.IDI_APPLICATION))
+	if err != nil {
+		return fmt.Errorf("LoadIcon: %v", err)
+	}
+	cursor, err := gui.LoadCursor(0, gui.MAKEINTRESOURCE(gui.IDC_ARROW))
+	if err != nil {
+		return fmt.Errorf("LoadCursor: %v", err)
+	}
 	wndClass := &gui.WndClassEx{
 		Size:       0,
 		Style:      gui.CS_HREDRAW | gui.CS_VREDRAW,
@@ -62,12 +69,12 @@ func (app *DemoApp) Initialize() error {
 		ClsExtra:   0,
 		WndExtra:   0,
 		Instance:   app.instance,
-		Icon:       0, //icon,
-		Cursor:     0, //w32.LoadCursor(0, w32.MakeIntResource(w32.IDC_ARROW)), // LoadCursor(NULL, IDI_APPLICATION),
+		Icon:       icon,
+		Cursor:     cursor,
 		Background: windows.Handle(gui.COLOR_WINDOW + 1),
 		MenuName:   nil,
 		ClassName:  classNameUTF16,
-		IconSm:     0, //icon,
+		IconSm:     0,
 	}
 	wndClass.Size = uint32(unsafe.Sizeof(*wndClass))
 	atom, err := gui.RegisterClassEx(wndClass)
