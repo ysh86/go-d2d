@@ -50,6 +50,9 @@ type D2D_POINT_2F struct {
 
 type D2D1_POINT_2F D2D_POINT_2F
 
+//             A11 A12 0
+// (x, y, 1) * A21 A22 0 = (A11x + A21y + A31, A12x + A22y + A32, 1)
+//             A31 A32 1
 type D2D_MATRIX_3X2_F struct {
 	A11 float32
 	A12 float32
