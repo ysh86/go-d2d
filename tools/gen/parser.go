@@ -28,6 +28,8 @@ const (
 var cTypeToGoType = map[string]string{
 	"FLOAT":  "float32",
 	"UINT32": "uint32",
+	"BOOL":   "bool",
+	"WCHAR":  "uint16",
 }
 
 func CreateCHeaderLexer() RegexpLexer {
@@ -292,6 +294,24 @@ func (im InterfaceMethod) InParams() []Param {
 		if !skipNext {
 			if p.IsIn || p.IsArray {
 				if !p.IsArray {
+					if p.Type.Name == "REFIID" {
+						if p.Type.IsPointer {
+							p.Type.IsPointerPointer = true
+						} else {
+							p.Type.IsPointer = true
+						}
+						p.Type.Name = "GUID"
+						im.Params[i] = p
+					}
+					if p.Type.Name == "void" && p.Type.IsPointer {
+						if p.Type.IsPointerPointer {
+							p.Type.IsPointerPointer = false
+						} else {
+							p.Type.IsPointer = false
+						}
+						p.Type.Name = "unsafe.Pointer"
+						im.Params[i] = p
+					}
 					p.Type.Name = p.Type.Asterisk() + p.Type.Name + ","
 				} else {
 					p.Type.Name = "[]" + p.Type.AsteriskMinus() + p.Type.Name + ","
@@ -323,6 +343,36 @@ func (im InterfaceMethod) OutParams() []Param {
 		if !p.IsIn && p.IsOut && !p.IsArray {
 			p.Type.Name = p.Type.AsteriskMinus() + p.Type.Name + ","
 			Params = append(Params, p)
+		}
+	}
+
+	return Params
+}
+
+func (im InterfaceMethod) OutParamsForAPI() []Param {
+	Params := make([]Param, 0, im.ParamsSize())
+
+	for _, p := range im.Params {
+		if !p.IsIn && p.IsOut && !p.IsArray {
+			if p.Type.Name == "bool" {
+				p.Name = "var " + p.Name + "Winbool int32"
+				Params = append(Params, p)
+			}
+		}
+	}
+
+	return Params
+}
+
+func (im InterfaceMethod) CastOutParamsForAPI() []Param {
+	Params := make([]Param, 0, im.ParamsSize())
+
+	for _, p := range im.Params {
+		if !p.IsIn && p.IsOut && !p.IsArray {
+			if p.Type.Name == "bool" {
+				p.Name = p.Name + " = (" + p.Name + "Winbool != 0)"
+				Params = append(Params, p)
+			}
 		}
 	}
 
@@ -404,6 +454,9 @@ func (p Param) NameForAPI() string {
 		return "len(" + p.ArrayName + ")"
 	}
 	if !p.IsIn && p.IsOut {
+		if p.Type.Name == "bool" {
+			return "&" + p.Name + "Winbool"
+		}
 		return "&" + p.Name
 	}
 	if p.Type.Name == "float32" && !p.Type.IsPointer && !p.Type.IsPointerPointer {
@@ -442,7 +495,8 @@ func (obj *{{.Name}}) vtbl() *{{.Name}}Vtbl {
 func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 	{{.Name}} {{.Type.Name}}{{end}}){{if len .ReturnValues}} ({{end}}{{range .ReturnValues}}
 	{{.Name}} {{.Type.Name}}{{end}} {
-	var {{if .ResultType.TypeEq "void" | not}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
+{{range .OutParamsForAPI}}	{{.Name}}
+{{end}}	var {{if .ResultType.TypeEq "void" | not}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
 		obj.vtbl().{{.Name}},
 		{{.ParamsSize}},
 		uintptr(unsafe.Pointer(obj)){{range .Params}},
@@ -453,19 +507,31 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 	}
 {{end}}{{if .ResultType.TypeEq "float32"}}	ret32 := uint32(ret)
 	result = *(*{{.ResultType.Name}})(unsafe.Pointer(&ret32))
+{{else}}{{if .ResultType.TypeEq "bool"}}	result = (ret != 0)
 {{else}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	result = ({{.ResultType.Asterisk}}{{.ResultType.Name}})(ret)
-{{end}}{{end}}	return
+{{end}}{{end}}{{end}}{{range .CastOutParamsForAPI}}	{{.Name}}
+{{end}}	return
 }
 {{end}}
 `))
 
-// TODO: bool 1byte, BOOL 4byte
-// TODO: string
+// TODO: inparam に BOOL がある時は未サポート
+
 // TODO: brush COLOR_F, geometry POINT_2F
 // render POINT & SIZE
 //   D2D1_SIZE_ 渡し方も受け方もあやしい
 //   D2D1_PIXEL_FORMAT
+//
+// Parameter passing
 // https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
+// Structs and unions of size 8, 16, 32, or 64 bits, and __m64 types, are passed as if they were integers of the same size.
+// Structs or unions of other sizes are passed as a pointer to memory allocated by the caller.
+//
+// Return values
+// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#return-values
+// To return a user-defined type by value in RAX, it must have a length of 1, 2, 4, 8, 16, 32, or 64 bits.
+// Otherwise, the caller assumes the responsibility of allocating memory and passing a pointer for the return value as the first argument.
+//
 // https://docs.microsoft.com/en-us/windows/desktop/winprog/windows-data-types
 
 func (ii Interface) String() string {
