@@ -379,6 +379,20 @@ func (im InterfaceMethod) CastOutParamsForAPI() []Param {
 	return Params
 }
 
+func (im InterfaceMethod) CastResult() string {
+	switch im.ResultType.Name {
+	case "float32":
+		return "ret32 := uint32(ret)\n\tresult = *(*float32)(unsafe.Pointer(&ret32))"
+	case "bool":
+		return "result = (ret != 0)"
+	// TODO: exception!!!
+	//case "D2D1_SIZE_F", "D2D1_SIZE_U", "D2D1_POINT_2F", "D2D1_PIXEL_FORMAT":
+	//	return "result = *(*" + im.ResultType.Name + ")(unsafe.Pointer(&ret))"
+	default:
+		return "result = (" + im.ResultType.Asterisk() + im.ResultType.Name + ")(ret)"
+	}
+}
+
 func (im InterfaceMethod) ReturnValues() []Param {
 	ReturnValues := im.OutParams()
 
@@ -477,11 +491,8 @@ func (p Param) NameForAPI() string {
 //    POINT_2F
 //    PIXEL_FORMAT
 // TODO: brush result COLOR_F 64bit(8byte)より大きいのにポインタじゃない！
+// TODO: render result 64bitなのにポインタで返ってくる
 
-// TODO: render 受け 3か所
-//   D2D1_SIZE_
-//   D2D1_PIXEL_FORMAT
-//
 // Parameter passing
 // https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
 // Structs and unions of size 8, 16, 32, or 64 bits, and __m64 types, are passed as if they were integers of the same size.
@@ -536,11 +547,8 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 {{if .ResultType.TypeEq "HRESULT"}}	if ret != S_OK {
 		err = fmt.Errorf("Fail to call {{.Name}}: %#x", ret)
 	}
-{{end}}{{if .ResultType.TypeEq "float32"}}	ret32 := uint32(ret)
-	result = *(*{{.ResultType.Name}})(unsafe.Pointer(&ret32))
-{{else}}{{if .ResultType.TypeEq "bool"}}	result = (ret != 0)
-{{else}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	result = ({{.ResultType.Asterisk}}{{.ResultType.Name}})(ret)
-{{end}}{{end}}{{end}}{{range .CastOutParamsForAPI}}	{{.Name}}
+{{end}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	{{.CastResult}}
+{{end}}{{range .CastOutParamsForAPI}}	{{.Name}}
 {{end}}	return
 }
 {{end}}
