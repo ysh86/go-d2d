@@ -11,6 +11,7 @@ import (
 
 func main() {
 	// load
+	fmt.Printf("load from stdin...")
 	dec := xml.NewDecoder(os.Stdin)
 
 	svg := new(svg.Root)
@@ -18,7 +19,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("load done")
+	fmt.Printf("done")
+	fmt.Printf(" (WxH: %dx%d)\n", svg.ViewBox.Width, svg.ViewBox.Height)
 
 	// app
 	app := gui.NewApplication()
@@ -29,13 +31,14 @@ func main() {
 	defer app.Deinit()
 
 	// renderer
-	// TODO: logger
 	renderer, err := NewSVGRenderer(svg)
 	if err != nil {
 		panic(err)
 	}
+	renderer.enableLog()
 
 	// run
+	fmt.Printf("drawing...")
 	windowName := "Direct2D SVG Viewer"
 	errc := app.Loop(
 		windowName,
@@ -48,6 +51,5 @@ func main() {
 			panic(e)
 		}
 	}
-
-	fmt.Fprintln(os.Stderr, "Done")
+	fmt.Println("done")
 }
