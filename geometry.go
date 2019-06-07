@@ -11,8 +11,12 @@ import (
 // 2cd906a1-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1Geometry = GUID{0x2cd906a1, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1GeometryVtbl struct {
-	ID2D1ResourceVtbl
+type ID2D1Geometry struct {
+	ID2D1Resource
+}
+
+type vtblID2D1Geometry struct {
+	vtblID2D1Resource
 	GetBounds            uintptr
 	GetWidenedBounds     uintptr
 	StrokeContainsPoint  uintptr
@@ -28,12 +32,8 @@ type ID2D1GeometryVtbl struct {
 	Widen                uintptr
 }
 
-type ID2D1Geometry struct {
-	ID2D1Resource
-}
-
-func (obj *ID2D1Geometry) vtbl() *ID2D1GeometryVtbl {
-	return (*ID2D1GeometryVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1Geometry) vtbl() *vtblID2D1Geometry {
+	return (*vtblID2D1Geometry)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1Geometry) GetBounds(
@@ -82,18 +82,18 @@ func (obj *ID2D1Geometry) StrokeContainsPoint(
 	flatteningTolerance float32) (
 	contains bool,
 	err error) {
-	containsWinbool := 0
+	var containsWinbool int32
 	var ret, _, _ = syscall.Syscall9(
 		obj.vtbl().StrokeContainsPoint,
-		8,
+		7,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))),
+		uintptr(*(*uint64)(unsafe.Pointer(&point))),
 		uintptr(*(*uint32)(unsafe.Pointer(&strokeWidth))),
 		uintptr(unsafe.Pointer(strokeStyle)),
 		uintptr(unsafe.Pointer(worldTransform)),
 		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
 		uintptr(unsafe.Pointer(&containsWinbool)),
+		0,
 		0)
 	if ret != S_OK {
 		err = fmt.Errorf("Fail to call StrokeContainsPoint: %#x", ret)
@@ -108,16 +108,16 @@ func (obj *ID2D1Geometry) FillContainsPoint(
 	flatteningTolerance float32) (
 	contains bool,
 	err error) {
-	containsWinbool := 0
+	var containsWinbool int32
 	var ret, _, _ = syscall.Syscall6(
 		obj.vtbl().FillContainsPoint,
-		6,
+		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))),
+		uintptr(*(*uint64)(unsafe.Pointer(&point))),
 		uintptr(unsafe.Pointer(worldTransform)),
 		uintptr(*(*uint32)(unsafe.Pointer(&flatteningTolerance))),
-		uintptr(unsafe.Pointer(&containsWinbool)))
+		uintptr(unsafe.Pointer(&containsWinbool)),
+		0)
 	if ret != S_OK {
 		err = fmt.Errorf("Fail to call FillContainsPoint: %#x", ret)
 	}
@@ -316,17 +316,17 @@ func (obj *ID2D1Geometry) Widen(
 // 2cd906a2-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1RectangleGeometry = GUID{0x2cd906a2, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1RectangleGeometryVtbl struct {
-	ID2D1GeometryVtbl
-	GetRect uintptr
-}
-
 type ID2D1RectangleGeometry struct {
 	ID2D1Geometry
 }
 
-func (obj *ID2D1RectangleGeometry) vtbl() *ID2D1RectangleGeometryVtbl {
-	return (*ID2D1RectangleGeometryVtbl)(obj.unsafeVtbl)
+type vtblID2D1RectangleGeometry struct {
+	vtblID2D1Geometry
+	GetRect uintptr
+}
+
+func (obj *ID2D1RectangleGeometry) vtbl() *vtblID2D1RectangleGeometry {
+	return (*vtblID2D1RectangleGeometry)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1RectangleGeometry) GetRect() (
@@ -343,17 +343,17 @@ func (obj *ID2D1RectangleGeometry) GetRect() (
 // 2cd906a3-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1RoundedRectangleGeometry = GUID{0x2cd906a3, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1RoundedRectangleGeometryVtbl struct {
-	ID2D1GeometryVtbl
-	GetRoundedRect uintptr
-}
-
 type ID2D1RoundedRectangleGeometry struct {
 	ID2D1Geometry
 }
 
-func (obj *ID2D1RoundedRectangleGeometry) vtbl() *ID2D1RoundedRectangleGeometryVtbl {
-	return (*ID2D1RoundedRectangleGeometryVtbl)(obj.unsafeVtbl)
+type vtblID2D1RoundedRectangleGeometry struct {
+	vtblID2D1Geometry
+	GetRoundedRect uintptr
+}
+
+func (obj *ID2D1RoundedRectangleGeometry) vtbl() *vtblID2D1RoundedRectangleGeometry {
+	return (*vtblID2D1RoundedRectangleGeometry)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1RoundedRectangleGeometry) GetRoundedRect() (
@@ -370,17 +370,17 @@ func (obj *ID2D1RoundedRectangleGeometry) GetRoundedRect() (
 // 2cd906a4-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1EllipseGeometry = GUID{0x2cd906a4, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1EllipseGeometryVtbl struct {
-	ID2D1GeometryVtbl
-	GetEllipse uintptr
-}
-
 type ID2D1EllipseGeometry struct {
 	ID2D1Geometry
 }
 
-func (obj *ID2D1EllipseGeometry) vtbl() *ID2D1EllipseGeometryVtbl {
-	return (*ID2D1EllipseGeometryVtbl)(obj.unsafeVtbl)
+type vtblID2D1EllipseGeometry struct {
+	vtblID2D1Geometry
+	GetEllipse uintptr
+}
+
+func (obj *ID2D1EllipseGeometry) vtbl() *vtblID2D1EllipseGeometry {
+	return (*vtblID2D1EllipseGeometry)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1EllipseGeometry) GetEllipse() (
@@ -397,19 +397,19 @@ func (obj *ID2D1EllipseGeometry) GetEllipse() (
 // 2cd906a6-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1GeometryGroup = GUID{0x2cd906a6, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1GeometryGroupVtbl struct {
-	ID2D1GeometryVtbl
+type ID2D1GeometryGroup struct {
+	ID2D1Geometry
+}
+
+type vtblID2D1GeometryGroup struct {
+	vtblID2D1Geometry
 	GetFillMode            uintptr
 	GetSourceGeometryCount uintptr
 	GetSourceGeometries    uintptr
 }
 
-type ID2D1GeometryGroup struct {
-	ID2D1Geometry
-}
-
-func (obj *ID2D1GeometryGroup) vtbl() *ID2D1GeometryGroupVtbl {
-	return (*ID2D1GeometryGroupVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1GeometryGroup) vtbl() *vtblID2D1GeometryGroup {
+	return (*vtblID2D1GeometryGroup)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1GeometryGroup) GetFillMode() (
@@ -450,18 +450,18 @@ func (obj *ID2D1GeometryGroup) GetSourceGeometries(
 // 2cd906bb-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1TransformedGeometry = GUID{0x2cd906bb, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1TransformedGeometryVtbl struct {
-	ID2D1GeometryVtbl
-	GetSourceGeometry uintptr
-	GetTransform      uintptr
-}
-
 type ID2D1TransformedGeometry struct {
 	ID2D1Geometry
 }
 
-func (obj *ID2D1TransformedGeometry) vtbl() *ID2D1TransformedGeometryVtbl {
-	return (*ID2D1TransformedGeometryVtbl)(obj.unsafeVtbl)
+type vtblID2D1TransformedGeometry struct {
+	vtblID2D1Geometry
+	GetSourceGeometry uintptr
+	GetTransform      uintptr
+}
+
+func (obj *ID2D1TransformedGeometry) vtbl() *vtblID2D1TransformedGeometry {
+	return (*vtblID2D1TransformedGeometry)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1TransformedGeometry) GetSourceGeometry() (
@@ -489,20 +489,20 @@ func (obj *ID2D1TransformedGeometry) GetTransform() (
 // 2cd906a5-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1PathGeometry = GUID{0x2cd906a5, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1PathGeometryVtbl struct {
-	ID2D1GeometryVtbl
+type ID2D1PathGeometry struct {
+	ID2D1Geometry
+}
+
+type vtblID2D1PathGeometry struct {
+	vtblID2D1Geometry
 	Open            uintptr
 	Stream          uintptr
 	GetSegmentCount uintptr
 	GetFigureCount  uintptr
 }
 
-type ID2D1PathGeometry struct {
-	ID2D1Geometry
-}
-
-func (obj *ID2D1PathGeometry) vtbl() *ID2D1PathGeometryVtbl {
-	return (*ID2D1PathGeometryVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1PathGeometry) vtbl() *vtblID2D1PathGeometry {
+	return (*vtblID2D1PathGeometry)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1PathGeometry) Open() (
@@ -568,8 +568,12 @@ func (obj *ID2D1PathGeometry) GetFigureCount() (
 // 2cd9069e-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1SimplifiedGeometrySink = GUID{0x2cd9069e, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1SimplifiedGeometrySinkVtbl struct {
-	IUnknownVtbl
+type ID2D1SimplifiedGeometrySink struct {
+	IUnknown
+}
+
+type vtblID2D1SimplifiedGeometrySink struct {
+	vtblIUnknown
 	SetFillMode     uintptr
 	SetSegmentFlags uintptr
 	BeginFigure     uintptr
@@ -579,12 +583,8 @@ type ID2D1SimplifiedGeometrySinkVtbl struct {
 	Close           uintptr
 }
 
-type ID2D1SimplifiedGeometrySink struct {
-	IUnknown
-}
-
-func (obj *ID2D1SimplifiedGeometrySink) vtbl() *ID2D1SimplifiedGeometrySinkVtbl {
-	return (*ID2D1SimplifiedGeometrySinkVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1SimplifiedGeometrySink) vtbl() *vtblID2D1SimplifiedGeometrySink {
+	return (*vtblID2D1SimplifiedGeometrySink)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1SimplifiedGeometrySink) SetFillMode(
@@ -612,15 +612,12 @@ func (obj *ID2D1SimplifiedGeometrySink) SetSegmentFlags(
 func (obj *ID2D1SimplifiedGeometrySink) BeginFigure(
 	startPoint D2D1_POINT_2F,
 	figureBegin D2D1_FIGURE_BEGIN) {
-	var _, _, _ = syscall.Syscall6(
+	var _, _, _ = syscall.Syscall(
 		obj.vtbl().BeginFigure,
-		4,
+		3,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&startPoint.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&startPoint.Y))),
-		uintptr(figureBegin),
-		0,
-		0)
+		uintptr(*(*uint64)(unsafe.Pointer(&startPoint))),
+		uintptr(figureBegin))
 	return
 }
 
@@ -674,18 +671,18 @@ func (obj *ID2D1SimplifiedGeometrySink) Close() (
 // 2cd906c1-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1TessellationSink = GUID{0x2cd906c1, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1TessellationSinkVtbl struct {
-	IUnknownVtbl
-	AddTriangles uintptr
-	Close        uintptr
-}
-
 type ID2D1TessellationSink struct {
 	IUnknown
 }
 
-func (obj *ID2D1TessellationSink) vtbl() *ID2D1TessellationSinkVtbl {
-	return (*ID2D1TessellationSinkVtbl)(obj.unsafeVtbl)
+type vtblID2D1TessellationSink struct {
+	vtblIUnknown
+	AddTriangles uintptr
+	Close        uintptr
+}
+
+func (obj *ID2D1TessellationSink) vtbl() *vtblID2D1TessellationSink {
+	return (*vtblID2D1TessellationSink)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1TessellationSink) AddTriangles(
@@ -716,8 +713,12 @@ func (obj *ID2D1TessellationSink) Close() (
 // 2cd9069f-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1GeometrySink = GUID{0x2cd9069f, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1GeometrySinkVtbl struct {
-	ID2D1SimplifiedGeometrySinkVtbl
+type ID2D1GeometrySink struct {
+	ID2D1SimplifiedGeometrySink
+}
+
+type vtblID2D1GeometrySink struct {
+	vtblID2D1SimplifiedGeometrySink
 	AddLine             uintptr
 	AddBezier           uintptr
 	AddQuadraticBezier  uintptr
@@ -725,22 +726,18 @@ type ID2D1GeometrySinkVtbl struct {
 	AddArc              uintptr
 }
 
-type ID2D1GeometrySink struct {
-	ID2D1SimplifiedGeometrySink
-}
-
-func (obj *ID2D1GeometrySink) vtbl() *ID2D1GeometrySinkVtbl {
-	return (*ID2D1GeometrySinkVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1GeometrySink) vtbl() *vtblID2D1GeometrySink {
+	return (*vtblID2D1GeometrySink)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1GeometrySink) AddLine(
 	point D2D1_POINT_2F) {
 	var _, _, _ = syscall.Syscall(
 		obj.vtbl().AddLine,
-		3,
+		2,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&point.Y))))
+		uintptr(*(*uint64)(unsafe.Pointer(&point))),
+		0)
 	return
 }
 

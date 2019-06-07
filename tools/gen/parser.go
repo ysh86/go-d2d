@@ -28,6 +28,8 @@ const (
 var cTypeToGoType = map[string]string{
 	"FLOAT":  "float32",
 	"UINT32": "uint32",
+	"BOOL":   "bool",
+	"WCHAR":  "uint16",
 }
 
 func CreateCHeaderLexer() RegexpLexer {
@@ -292,6 +294,24 @@ func (im InterfaceMethod) InParams() []Param {
 		if !skipNext {
 			if p.IsIn || p.IsArray {
 				if !p.IsArray {
+					if p.Type.Name == "REFIID" {
+						if p.Type.IsPointer {
+							p.Type.IsPointerPointer = true
+						} else {
+							p.Type.IsPointer = true
+						}
+						p.Type.Name = "GUID"
+						im.Params[i] = p
+					}
+					if p.Type.Name == "void" && p.Type.IsPointer {
+						if p.Type.IsPointerPointer {
+							p.Type.IsPointerPointer = false
+						} else {
+							p.Type.IsPointer = false
+						}
+						p.Type.Name = "unsafe.Pointer"
+						im.Params[i] = p
+					}
 					p.Type.Name = p.Type.Asterisk() + p.Type.Name + ","
 				} else {
 					p.Type.Name = "[]" + p.Type.AsteriskMinus() + p.Type.Name + ","
@@ -327,6 +347,50 @@ func (im InterfaceMethod) OutParams() []Param {
 	}
 
 	return Params
+}
+
+func (im InterfaceMethod) OutParamsForAPI() []Param {
+	Params := make([]Param, 0, im.ParamsSize())
+
+	for _, p := range im.Params {
+		if !p.IsIn && p.IsOut && !p.IsArray {
+			if p.Type.Name == "bool" {
+				p.Name = "var " + p.Name + "Winbool int32"
+				Params = append(Params, p)
+			}
+		}
+	}
+
+	return Params
+}
+
+func (im InterfaceMethod) CastOutParamsForAPI() []Param {
+	Params := make([]Param, 0, im.ParamsSize())
+
+	for _, p := range im.Params {
+		if !p.IsIn && p.IsOut && !p.IsArray {
+			if p.Type.Name == "bool" {
+				p.Name = p.Name + " = (" + p.Name + "Winbool != 0)"
+				Params = append(Params, p)
+			}
+		}
+	}
+
+	return Params
+}
+
+func (im InterfaceMethod) CastResult() string {
+	switch im.ResultType.Name {
+	case "float32":
+		return "ret32 := uint32(ret)\n\tresult = *(*float32)(unsafe.Pointer(&ret32))"
+	case "bool":
+		return "result = (ret != 0)"
+	// TODO: exception!!!
+	//case "D2D1_SIZE_F", "D2D1_SIZE_U", "D2D1_POINT_2F", "D2D1_PIXEL_FORMAT":
+	//	return "result = *(*" + im.ResultType.Name + ")(unsafe.Pointer(&ret))"
+	default:
+		return "result = (" + im.ResultType.Asterisk() + im.ResultType.Name + ")(ret)"
+	}
 }
 
 func (im InterfaceMethod) ReturnValues() []Param {
@@ -404,15 +468,45 @@ func (p Param) NameForAPI() string {
 		return "len(" + p.ArrayName + ")"
 	}
 	if !p.IsIn && p.IsOut {
+		if p.Type.Name == "bool" {
+			return "&" + p.Name + "Winbool"
+		}
 		return "&" + p.Name
 	}
-	if p.Type.Name == "float32" && !p.Type.IsPointer && !p.Type.IsPointerPointer {
-		return "*(*uint32)(unsafe.Pointer(&" + p.Name + "))"
+	if !p.Type.IsPointer && !p.Type.IsPointerPointer {
+		switch p.Type.Name {
+		case "float32":
+			return "*(*uint32)(unsafe.Pointer(&" + p.Name + "))"
+		case "D2D1_SIZE_F", "D2D1_SIZE_U", "D2D1_POINT_2F", "D2D1_PIXEL_FORMAT":
+			return "*(*uint64)(unsafe.Pointer(&" + p.Name + "))"
+		}
 	}
 	return p.Name
 }
 
-var interfaceTempl = template.Must(template.New("interface").Parse(`// +build windows
+// TODO: inparam に BOOL がある時は未サポート
+// TODO: size を見ずに pointer かどうかだけで値渡しを決めている
+//    SIZE_F
+//    SIZE_U
+//    POINT_2F
+//    PIXEL_FORMAT
+// TODO: brush result COLOR_F 64bit(8byte)より大きいのにポインタじゃない！
+// TODO: render result 64bitなのにポインタで返ってくる
+
+// Parameter passing
+// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
+// Structs and unions of size 8, 16, 32, or 64 bits, and __m64 types, are passed as if they were integers of the same size.
+// Structs or unions of other sizes are passed as a pointer to memory allocated by the caller.
+//
+// Return values
+// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#return-values
+// To return a user-defined type by value in RAX, it must have a length of 1, 2, 4, 8, 16, 32, or 64 bits.
+// Otherwise, the caller assumes the responsibility of allocating memory and passing a pointer for the return value as the first argument.
+//
+// https://docs.microsoft.com/en-us/windows/desktop/winprog/windows-data-types
+
+/*
+// +build windows
 
 package d2d
 
@@ -422,27 +516,29 @@ import (
 	"syscall"
 	"unsafe"
 )
+*/
 
-// {{.Guid}}
+var interfaceTempl = template.Must(template.New("interface").Parse(`// {{.Guid}}
 var IID_{{.Name}} = GUID{ {{.ConvertedGuid}} }
-
-type {{.Name}}Vtbl struct {
-	{{.Parent}}Vtbl
-{{range .Methods}}	{{.Name}} uintptr
-{{end}}}
 
 type {{.Name}} struct {
 	{{.Parent}}
 }
 
-func (obj *{{.Name}}) vtbl() *{{.Name}}Vtbl {
-	return (*{{.Name}}Vtbl)(obj.unsafeVtbl)
+type vtbl{{.Name}} struct {
+	vtbl{{.Parent}}
+{{range .Methods}}	{{.Name}} uintptr
+{{end}}}
+
+func (obj *{{.Name}}) vtbl() *vtbl{{.Name}} {
+	return (*vtbl{{.Name}})(obj.unsafeVtbl)
 }
 {{$n := .Name}}{{range .Methods}}
 func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 	{{.Name}} {{.Type.Name}}{{end}}){{if len .ReturnValues}} ({{end}}{{range .ReturnValues}}
 	{{.Name}} {{.Type.Name}}{{end}} {
-	var {{if .ResultType.TypeEq "void" | not}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
+{{range .OutParamsForAPI}}	{{.Name}}
+{{end}}	var {{if .ResultType.TypeEq "void" | not}}ret{{else}}_{{end}}, _, _ = syscall.{{.SyscallFunc}}(
 		obj.vtbl().{{.Name}},
 		{{.ParamsSize}},
 		uintptr(unsafe.Pointer(obj)){{range .Params}},
@@ -451,22 +547,12 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 {{if .ResultType.TypeEq "HRESULT"}}	if ret != S_OK {
 		err = fmt.Errorf("Fail to call {{.Name}}: %#x", ret)
 	}
-{{end}}{{if .ResultType.TypeEq "float32"}}	ret32 := uint32(ret)
-	result = *(*{{.ResultType.Name}})(unsafe.Pointer(&ret32))
-{{else}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	result = ({{.ResultType.Asterisk}}{{.ResultType.Name}})(ret)
-{{end}}{{end}}	return
+{{end}}{{if and (.ResultType.TypeEq "void" | not) (.ResultType.TypeEq "HRESULT" | not)}}	{{.CastResult}}
+{{end}}{{range .CastOutParamsForAPI}}	{{.Name}}
+{{end}}	return
 }
 {{end}}
 `))
-
-// TODO: bool 1byte, BOOL 4byte
-// TODO: string
-// TODO: brush COLOR_F, geometry POINT_2F
-// render POINT & SIZE
-//   D2D1_SIZE_ 渡し方も受け方もあやしい
-//   D2D1_PIXEL_FORMAT
-// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
-// https://docs.microsoft.com/en-us/windows/desktop/winprog/windows-data-types
 
 func (ii Interface) String() string {
 	b := &bytes.Buffer{}

@@ -11,8 +11,12 @@ import (
 // 2cd90694-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1RenderTarget = GUID{0x2cd90694, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1RenderTargetVtbl struct {
-	ID2D1ResourceVtbl
+type ID2D1RenderTarget struct {
+	ID2D1Resource
+}
+
+type vtblID2D1RenderTarget struct {
+	vtblID2D1Resource
 	CreateBitmap                 uintptr
 	CreateBitmapFromWicBitmap    uintptr
 	CreateSharedBitmap           uintptr
@@ -68,12 +72,8 @@ type ID2D1RenderTargetVtbl struct {
 	IsSupported                  uintptr
 }
 
-type ID2D1RenderTarget struct {
-	ID2D1Resource
-}
-
-func (obj *ID2D1RenderTarget) vtbl() *ID2D1RenderTargetVtbl {
-	return (*ID2D1RenderTargetVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1RenderTarget) vtbl() *vtblID2D1RenderTarget {
+	return (*vtblID2D1RenderTarget)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1RenderTarget) CreateBitmap(
@@ -83,18 +83,15 @@ func (obj *ID2D1RenderTarget) CreateBitmap(
 	bitmapProperties *D2D1_BITMAP_PROPERTIES) (
 	bitmap *ID2D1Bitmap,
 	err error) {
-	var ret, _, _ = syscall.Syscall9(
+	var ret, _, _ = syscall.Syscall6(
 		obj.vtbl().CreateBitmap,
-		7,
+		6,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(size.Width),
-		uintptr(size.Height),
-		uintptr(unsafe.Pointer(srcData)),
+		uintptr(*(*uint64)(unsafe.Pointer(&size))),
+		uintptr(srcData),
 		uintptr(pitch),
 		uintptr(unsafe.Pointer(bitmapProperties)),
-		uintptr(unsafe.Pointer(&bitmap)),
-		0,
-		0)
+		uintptr(unsafe.Pointer(&bitmap)))
 	if ret != S_OK {
 		err = fmt.Errorf("Fail to call CreateBitmap: %#x", ret)
 	}
@@ -122,7 +119,7 @@ func (obj *ID2D1RenderTarget) CreateBitmapFromWicBitmap(
 }
 
 func (obj *ID2D1RenderTarget) CreateSharedBitmap(
-	iid *GUID,
+	riid *GUID,
 	data unsafe.Pointer,
 	bitmapProperties *D2D1_BITMAP_PROPERTIES) (
 	bitmap *ID2D1Bitmap,
@@ -131,8 +128,8 @@ func (obj *ID2D1RenderTarget) CreateSharedBitmap(
 		obj.vtbl().CreateSharedBitmap,
 		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(iid)),
-		uintptr(unsafe.Pointer(data)),
+		uintptr(unsafe.Pointer(riid)),
+		uintptr(data),
 		uintptr(unsafe.Pointer(bitmapProperties)),
 		uintptr(unsafe.Pointer(&bitmap)),
 		0)
@@ -514,13 +511,13 @@ func (obj *ID2D1RenderTarget) DrawTextLayout(
 	options D2D1_DRAW_TEXT_OPTIONS) {
 	var _, _, _ = syscall.Syscall6(
 		obj.vtbl().DrawTextLayout,
-		6,
+		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&origin.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&origin.Y))),
+		uintptr(*(*uint64)(unsafe.Pointer(&origin))),
 		uintptr(unsafe.Pointer(textLayout)),
 		uintptr(unsafe.Pointer(defaultForegroundBrush)),
-		uintptr(options))
+		uintptr(options),
+		0)
 	return
 }
 
@@ -531,13 +528,13 @@ func (obj *ID2D1RenderTarget) DrawGlyphRun(
 	measuringMode DWRITE_MEASURING_MODE) {
 	var _, _, _ = syscall.Syscall6(
 		obj.vtbl().DrawGlyphRun,
-		6,
+		5,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(*(*uint32)(unsafe.Pointer(&baselineOrigin.X))),
-		uintptr(*(*uint32)(unsafe.Pointer(&baselineOrigin.Y))),
+		uintptr(*(*uint64)(unsafe.Pointer(&baselineOrigin))),
 		uintptr(unsafe.Pointer(glyphRun)),
 		uintptr(unsafe.Pointer(foregroundBrush)),
-		uintptr(measuringMode))
+		uintptr(measuringMode),
+		0)
 	return
 }
 
@@ -859,19 +856,19 @@ func (obj *ID2D1RenderTarget) IsSupported(
 // 2cd90698-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1HwndRenderTarget = GUID{0x2cd90698, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1HwndRenderTargetVtbl struct {
-	ID2D1RenderTargetVtbl
+type ID2D1HwndRenderTarget struct {
+	ID2D1RenderTarget
+}
+
+type vtblID2D1HwndRenderTarget struct {
+	vtblID2D1RenderTarget
 	CheckWindowState uintptr
 	Resize           uintptr
 	GetHwnd          uintptr
 }
 
-type ID2D1HwndRenderTarget struct {
-	ID2D1RenderTarget
-}
-
-func (obj *ID2D1HwndRenderTarget) vtbl() *ID2D1HwndRenderTargetVtbl {
-	return (*ID2D1HwndRenderTargetVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1HwndRenderTarget) vtbl() *vtblID2D1HwndRenderTarget {
+	return (*vtblID2D1HwndRenderTarget)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1HwndRenderTarget) CheckWindowState() (
@@ -916,17 +913,17 @@ func (obj *ID2D1HwndRenderTarget) GetHwnd() (
 // 1c51bc64-de61-46fd-9899-63a5d8f03950
 var IID_ID2D1DCRenderTarget = GUID{0x1c51bc64, 0xde61, 0x46fd, [8]byte{0x98, 0x99, 0x63, 0xa5, 0xd8, 0xf0, 0x39, 0x50}}
 
-type ID2D1DCRenderTargetVtbl struct {
-	ID2D1RenderTargetVtbl
-	BindDC uintptr
-}
-
 type ID2D1DCRenderTarget struct {
 	ID2D1RenderTarget
 }
 
-func (obj *ID2D1DCRenderTarget) vtbl() *ID2D1DCRenderTargetVtbl {
-	return (*ID2D1DCRenderTargetVtbl)(obj.unsafeVtbl)
+type vtblID2D1DCRenderTarget struct {
+	vtblID2D1RenderTarget
+	BindDC uintptr
+}
+
+func (obj *ID2D1DCRenderTarget) vtbl() *vtblID2D1DCRenderTarget {
+	return (*vtblID2D1DCRenderTarget)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1DCRenderTarget) BindDC(

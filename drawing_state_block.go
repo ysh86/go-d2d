@@ -10,20 +10,20 @@ import (
 // 28506e39-ebf6-46a1-bb47-fd85565ab957
 var IID_ID2D1DrawingStateBlock = GUID{0x28506e39, 0xebf6, 0x46a1, [8]byte{0xbb, 0x47, 0xfd, 0x85, 0x56, 0x5a, 0xb9, 0x57}}
 
-type ID2D1DrawingStateBlockVtbl struct {
-	ID2D1ResourceVtbl
+type ID2D1DrawingStateBlock struct {
+	ID2D1Resource
+}
+
+type vtblID2D1DrawingStateBlock struct {
+	vtblID2D1Resource
 	GetDescription         uintptr
 	SetDescription         uintptr
 	SetTextRenderingParams uintptr
 	GetTextRenderingParams uintptr
 }
 
-type ID2D1DrawingStateBlock struct {
-	ID2D1Resource
-}
-
-func (obj *ID2D1DrawingStateBlock) vtbl() *ID2D1DrawingStateBlockVtbl {
-	return (*ID2D1DrawingStateBlockVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1DrawingStateBlock) vtbl() *vtblID2D1DrawingStateBlock {
+	return (*vtblID2D1DrawingStateBlock)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1DrawingStateBlock) GetDescription() (

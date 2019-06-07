@@ -11,8 +11,12 @@ import (
 // 06152247-6f50-465a-9245-118bfd3b6007
 var IID_ID2D1Factory = GUID{0x06152247, 0x6f50, 0x465a, [8]byte{0x92, 0x45, 0x11, 0x8b, 0xfd, 0x3b, 0x60, 0x07}}
 
-type ID2D1FactoryVtbl struct {
-	IUnknownVtbl
+type ID2D1Factory struct {
+	IUnknown
+}
+
+type vtblID2D1Factory struct {
+	vtblIUnknown
 	ReloadSystemMetrics            uintptr
 	GetDesktopDpi                  uintptr
 	CreateRectangleGeometry        uintptr
@@ -29,12 +33,8 @@ type ID2D1FactoryVtbl struct {
 	CreateDCRenderTarget           uintptr
 }
 
-type ID2D1Factory struct {
-	IUnknown
-}
-
-func (obj *ID2D1Factory) vtbl() *ID2D1FactoryVtbl {
-	return (*ID2D1FactoryVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1Factory) vtbl() *vtblID2D1Factory {
+	return (*vtblID2D1Factory)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1Factory) ReloadSystemMetrics() (
