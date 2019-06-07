@@ -459,13 +459,43 @@ func (p Param) NameForAPI() string {
 		}
 		return "&" + p.Name
 	}
-	if p.Type.Name == "float32" && !p.Type.IsPointer && !p.Type.IsPointerPointer {
-		return "*(*uint32)(unsafe.Pointer(&" + p.Name + "))"
+	if !p.Type.IsPointer && !p.Type.IsPointerPointer {
+		switch p.Type.Name {
+		case "float32":
+			return "*(*uint32)(unsafe.Pointer(&" + p.Name + "))"
+		case "D2D1_SIZE_F", "D2D1_SIZE_U", "D2D1_POINT_2F", "D2D1_PIXEL_FORMAT":
+			return "*(*uint64)(unsafe.Pointer(&" + p.Name + "))"
+		}
 	}
 	return p.Name
 }
 
-var interfaceTempl = template.Must(template.New("interface").Parse(`// +build windows
+// TODO: inparam に BOOL がある時は未サポート
+// TODO: size を見ずに pointer かどうかだけで値渡しを決めている
+//    SIZE_F
+//    SIZE_U
+//    POINT_2F
+//    PIXEL_FORMAT
+// TODO: brush result COLOR_F 64bit(8byte)より大きいのにポインタじゃない！
+
+// TODO: render 受け 3か所
+//   D2D1_SIZE_
+//   D2D1_PIXEL_FORMAT
+//
+// Parameter passing
+// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
+// Structs and unions of size 8, 16, 32, or 64 bits, and __m64 types, are passed as if they were integers of the same size.
+// Structs or unions of other sizes are passed as a pointer to memory allocated by the caller.
+//
+// Return values
+// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#return-values
+// To return a user-defined type by value in RAX, it must have a length of 1, 2, 4, 8, 16, 32, or 64 bits.
+// Otherwise, the caller assumes the responsibility of allocating memory and passing a pointer for the return value as the first argument.
+//
+// https://docs.microsoft.com/en-us/windows/desktop/winprog/windows-data-types
+
+/*
+// +build windows
 
 package d2d
 
@@ -475,8 +505,9 @@ import (
 	"syscall"
 	"unsafe"
 )
+*/
 
-// {{.Guid}}
+var interfaceTempl = template.Must(template.New("interface").Parse(`// {{.Guid}}
 var IID_{{.Name}} = GUID{ {{.ConvertedGuid}} }
 
 type {{.Name}}Vtbl struct {
@@ -514,25 +545,6 @@ func (obj *{{$n}}) {{.Name}}({{range .InParams}}
 }
 {{end}}
 `))
-
-// TODO: inparam に BOOL がある時は未サポート
-
-// TODO: brush COLOR_F, geometry POINT_2F
-// render POINT & SIZE
-//   D2D1_SIZE_ 渡し方も受け方もあやしい
-//   D2D1_PIXEL_FORMAT
-//
-// Parameter passing
-// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#parameter-passing
-// Structs and unions of size 8, 16, 32, or 64 bits, and __m64 types, are passed as if they were integers of the same size.
-// Structs or unions of other sizes are passed as a pointer to memory allocated by the caller.
-//
-// Return values
-// https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019#return-values
-// To return a user-defined type by value in RAX, it must have a length of 1, 2, 4, 8, 16, 32, or 64 bits.
-// Otherwise, the caller assumes the responsibility of allocating memory and passing a pointer for the return value as the first argument.
-//
-// https://docs.microsoft.com/en-us/windows/desktop/winprog/windows-data-types
 
 func (ii Interface) String() string {
 	b := &bytes.Buffer{}
