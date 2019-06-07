@@ -10,20 +10,20 @@ import (
 // 2cd906a8-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1Brush = GUID{0x2cd906a8, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1BrushVtbl struct {
-	ID2D1ResourceVtbl
+type ID2D1Brush struct {
+	ID2D1Resource
+}
+
+type vtblID2D1Brush struct {
+	vtblID2D1Resource
 	SetOpacity   uintptr
 	SetTransform uintptr
 	GetOpacity   uintptr
 	GetTransform uintptr
 }
 
-type ID2D1Brush struct {
-	ID2D1Resource
-}
-
-func (obj *ID2D1Brush) vtbl() *ID2D1BrushVtbl {
-	return (*ID2D1BrushVtbl)(obj.unsafeVtbl)
+func (obj *ID2D1Brush) vtbl() *vtblID2D1Brush {
+	return (*vtblID2D1Brush)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1Brush) SetOpacity(
@@ -75,18 +75,18 @@ func (obj *ID2D1Brush) GetTransform() (
 // 2cd906a9-12e2-11dc-9fed-001143a055f9
 var IID_ID2D1SolidColorBrush = GUID{0x2cd906a9, 0x12e2, 0x11dc, [8]byte{0x9f, 0xed, 0x00, 0x11, 0x43, 0xa0, 0x55, 0xf9}}
 
-type ID2D1SolidColorBrushVtbl struct {
-	ID2D1BrushVtbl
-	SetColor uintptr
-	GetColor uintptr
-}
-
 type ID2D1SolidColorBrush struct {
 	ID2D1Brush
 }
 
-func (obj *ID2D1SolidColorBrush) vtbl() *ID2D1SolidColorBrushVtbl {
-	return (*ID2D1SolidColorBrushVtbl)(obj.unsafeVtbl)
+type vtblID2D1SolidColorBrush struct {
+	vtblID2D1Brush
+	SetColor uintptr
+	GetColor uintptr
+}
+
+func (obj *ID2D1SolidColorBrush) vtbl() *vtblID2D1SolidColorBrush {
+	return (*vtblID2D1SolidColorBrush)(obj.unsafeVtbl)
 }
 
 func (obj *ID2D1SolidColorBrush) SetColor(
