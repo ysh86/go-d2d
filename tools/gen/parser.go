@@ -521,17 +521,17 @@ import (
 var interfaceTempl = template.Must(template.New("interface").Parse(`// {{.Guid}}
 var IID_{{.Name}} = GUID{ {{.ConvertedGuid}} }
 
-type {{.Name}}Vtbl struct {
-	{{.Parent}}Vtbl
-{{range .Methods}}	{{.Name}} uintptr
-{{end}}}
-
 type {{.Name}} struct {
 	{{.Parent}}
 }
 
-func (obj *{{.Name}}) vtbl() *{{.Name}}Vtbl {
-	return (*{{.Name}}Vtbl)(obj.unsafeVtbl)
+type vtbl{{.Name}} struct {
+	vtbl{{.Parent}}
+{{range .Methods}}	{{.Name}} uintptr
+{{end}}}
+
+func (obj *{{.Name}}) vtbl() *vtbl{{.Name}} {
+	return (*vtbl{{.Name}})(obj.unsafeVtbl)
 }
 {{$n := .Name}}{{range .Methods}}
 func (obj *{{$n}}) {{.Name}}({{range .InParams}}

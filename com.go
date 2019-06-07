@@ -1,6 +1,4 @@
-// Copyright 2012 The d2d Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+// +build windows
 
 package d2d
 
@@ -24,29 +22,29 @@ const (
 
 var IID_IUnknown = GUID{0x00000000, 0x0000, 0x0000, [8]byte{0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}}
 
-type IUnknownVtbl struct {
+type IUnknown struct {
+	unsafeVtbl unsafe.Pointer
+}
+
+type vtblIUnknown struct {
 	QueryInterface uintptr
 	AddRef         uintptr
 	Release        uintptr
 }
 
-type IUnknown struct {
-	unsafeVtbl unsafe.Pointer
-}
-
-func (obj *IUnknown) vtbl() *IUnknownVtbl {
-	return (*IUnknownVtbl)(obj.unsafeVtbl)
+func (obj *IUnknown) vtbl() *vtblIUnknown {
+	return (*vtblIUnknown)(obj.unsafeVtbl)
 }
 
 func (obj *IUnknown) QueryInterface(
-	iid *GUID) (
+	riid *GUID) (
 	dest unsafe.Pointer,
 	err error) {
 	var ret, _, _ = syscall.Syscall(
 		obj.vtbl().QueryInterface,
 		3,
 		uintptr(unsafe.Pointer(obj)),
-		uintptr(unsafe.Pointer(iid)),
+		uintptr(unsafe.Pointer(riid)),
 		uintptr(unsafe.Pointer(&dest)))
 	if ret != S_OK {
 		err = fmt.Errorf("Query interface error: %#x", ret)
