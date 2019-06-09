@@ -52,7 +52,13 @@ func (r *svgRenderer) Init() error {
 
 	// Initialize device-indpendent resources, such
 	// as the Direct2D factory.
-	err = r.createDeviceIndependentResources()
+	r.factory, err = d2d.D2D1CreateFactory(d2d.D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
+	if err != nil {
+		return err
+	}
+
+	// make doc
+	r.geometryGroup, err = r.convertSVG2Geometry(r.svg)
 	if err != nil {
 		return err
 	}
@@ -247,234 +253,239 @@ func (r *svgRenderer) Draw(nativeWindow uintptr) error {
 
 // private methods
 
-func (r *svgRenderer) createDeviceIndependentResources() (err error) {
-	r.factory, err = d2d.D2D1CreateFactory(d2d.D2D1_FACTORY_TYPE_SINGLE_THREADED, nil)
-
-	if r.svg == nil {
-		return
-	}
-
+func (r *svgRenderer) createPath(svgPath *svg.Path) (*d2d.ID2D1Geometry, error) {
 	var lineBuf *bytes.Buffer
 	if r.logger != nil {
 		lineBuf = new(bytes.Buffer)
 	}
 
-	gs := make([]*d2d.ID2D1Geometry, 0, len(r.svg.Groups))
-	for _, g := range r.svg.Groups {
-		ggs := make([]*d2d.ID2D1Geometry, 0, len(g.Groups))
-		for _, gg := range g.Groups {
-			ps := make([]*d2d.ID2D1Geometry, 0, len(gg.Paths))
-			for _, p := range gg.Paths {
-				if len(p.D) < 1 {
-					continue
-				}
-				path, err := r.factory.CreatePathGeometry()
-				if err != nil {
-					panic(err)
-				}
-				sink, err := path.Open()
-				if err != nil {
-					panic(err)
+	// validation
+	if len(svgPath.D) < 1 || len(svgPath.D[0].Points) < 1 ||
+		(svgPath.D[0].Command != "m" && svgPath.D[0].Command != "M") {
+		return nil, fmt.Errorf("no path/points/m/M")
+	}
+
+	path, err := r.factory.CreatePathGeometry()
+	if err != nil {
+		return nil, err
+	}
+	sink, err := path.Open()
+	if err != nil {
+		path.Release()
+		return nil, err
+	}
+
+	// TODO: gg.Fill, widen
+	sink.SetFillMode(d2d.D2D1_FILL_MODE_WINDING)
+
+	// SVG M
+	pre := svgPath.D[0]
+	prePoint := d2d.D2D1_POINT_2F{
+		X: pre.Points[0].X,
+		Y: pre.Points[0].Y,
+	}
+	sink.BeginFigure(prePoint, d2d.D2D1_FIGURE_BEGIN_FILLED)
+	if r.logger != nil {
+		lineBuf.WriteString(fmt.Sprintf("begin M:%v, ", prePoint))
+	}
+	// lines
+	for _, svgPoint := range pre.Points[1:] {
+		point := d2d.D2D1_POINT_2F{
+			X: svgPoint.X,
+			Y: svgPoint.Y,
+		}
+
+		if pre.Command == "m" {
+			point.X += prePoint.X
+			point.Y += prePoint.Y
+		}
+		prePoint = point
+
+		sink.AddLine(point)
+		if r.logger != nil {
+			lineBuf.WriteString(fmt.Sprintf("M:%v, ", prePoint))
+		}
+	}
+
+	// commands
+	preP1 := prePoint
+	for i, c := range svgPath.D[1:] {
+		switch c.Command {
+		case "m", "M":
+			panic(fmt.Errorf("Not implemented: %s", c.Command))
+		case "l", "L":
+			for _, svgPoint := range c.Points {
+				point := d2d.D2D1_POINT_2F{
+					X: svgPoint.X,
+					Y: svgPoint.Y,
 				}
 
-				// TODO: gg.Fill
-				sink.SetFillMode(d2d.D2D1_FILL_MODE_WINDING)
+				if c.Command == "l" {
+					point.X += prePoint.X
+					point.Y += prePoint.Y
+				}
+				prePoint = point
+				preP1 = point
 
-				// SVG M
-				pre := p.D[0]
-				if pre.Command != "m" && pre.Command != "M" {
-					continue
-				}
-				if len(pre.Points) < 1 {
-					continue
-				}
-				prePoint := d2d.D2D1_POINT_2F{
-					X: pre.Points[0].X,
-					Y: pre.Points[0].Y,
-				}
-				sink.BeginFigure(prePoint, d2d.D2D1_FIGURE_BEGIN_FILLED)
+				sink.AddLine(point)
 				if r.logger != nil {
-					lineBuf.Reset()
-					lineBuf.WriteString(fmt.Sprintf("begin M:%v, ", prePoint))
+					lineBuf.WriteString(fmt.Sprintf("L:%v, ", prePoint))
 				}
-				// lines
-				for _, svgPoint := range pre.Points[1:] {
+			}
+		case "s", "S":
+			for j, svgPoint := range c.Points {
+				if j%2 == 1 {
+					p1 := d2d.D2D1_POINT_2F{
+						X: preP1.X,
+						Y: preP1.Y,
+					}
+					p2 := d2d.D2D1_POINT_2F{
+						X: c.Points[j-1].X,
+						Y: c.Points[j-1].Y,
+					}
 					point := d2d.D2D1_POINT_2F{
 						X: svgPoint.X,
 						Y: svgPoint.Y,
 					}
 
-					if pre.Command == "m" {
+					if c.Command == "s" {
+						p2.X += prePoint.X
+						p2.Y += prePoint.Y
 						point.X += prePoint.X
 						point.Y += prePoint.Y
 					}
 					prePoint = point
+					preP1.X = -(p2.X - point.X) + point.X
+					preP1.Y = -(p2.Y - point.Y) + point.Y
 
-					sink.AddLine(point)
+					sink.AddBezier(&d2d.D2D1_BEZIER_SEGMENT{
+						Point1: p1,
+						Point2: p2,
+						Point3: point})
 					if r.logger != nil {
-						lineBuf.WriteString(fmt.Sprintf("M:%v, ", prePoint))
+						lineBuf.WriteString(fmt.Sprintf("S:%v, ", prePoint))
 					}
 				}
-
-				// commands
-				preP1 := prePoint
-				for i, c := range p.D[1:] {
-					switch c.Command {
-					case "m", "M":
-						panic(fmt.Errorf("Not implemented: %s", c.Command))
-					case "l", "L":
-						for _, svgPoint := range c.Points {
-							point := d2d.D2D1_POINT_2F{
-								X: svgPoint.X,
-								Y: svgPoint.Y,
-							}
-
-							if c.Command == "l" {
-								point.X += prePoint.X
-								point.Y += prePoint.Y
-							}
-							prePoint = point
-							preP1 = point
-
-							sink.AddLine(point)
-							if r.logger != nil {
-								lineBuf.WriteString(fmt.Sprintf("L:%v, ", prePoint))
-							}
-						}
-					case "s", "S":
-						for j, svgPoint := range c.Points {
-							if j%2 == 1 {
-								p1 := d2d.D2D1_POINT_2F{
-									X: preP1.X,
-									Y: preP1.Y,
-								}
-								p2 := d2d.D2D1_POINT_2F{
-									X: c.Points[j-1].X,
-									Y: c.Points[j-1].Y,
-								}
-								point := d2d.D2D1_POINT_2F{
-									X: svgPoint.X,
-									Y: svgPoint.Y,
-								}
-
-								if c.Command == "s" {
-									p2.X += prePoint.X
-									p2.Y += prePoint.Y
-									point.X += prePoint.X
-									point.Y += prePoint.Y
-								}
-								prePoint = point
-								preP1.X = -(p2.X - point.X) + point.X
-								preP1.Y = -(p2.Y - point.Y) + point.Y
-
-								sink.AddBezier(&d2d.D2D1_BEZIER_SEGMENT{
-									Point1: p1,
-									Point2: p2,
-									Point3: point})
-								if r.logger != nil {
-									lineBuf.WriteString(fmt.Sprintf("S:%v, ", prePoint))
-								}
-							}
-						}
-					case "c", "C":
-						for j, svgPoint := range c.Points {
-							if j%3 == 2 {
-								p1 := d2d.D2D1_POINT_2F{
-									X: c.Points[j-2].X,
-									Y: c.Points[j-2].Y,
-								}
-								p2 := d2d.D2D1_POINT_2F{
-									X: c.Points[j-1].X,
-									Y: c.Points[j-1].Y,
-								}
-								point := d2d.D2D1_POINT_2F{
-									X: svgPoint.X,
-									Y: svgPoint.Y,
-								}
-
-								if c.Command == "c" {
-									p1.X += prePoint.X
-									p1.Y += prePoint.Y
-									p2.X += prePoint.X
-									p2.Y += prePoint.Y
-									point.X += prePoint.X
-									point.Y += prePoint.Y
-								}
-								prePoint = point
-								preP1.X = -(p2.X - point.X) + point.X
-								preP1.Y = -(p2.Y - point.Y) + point.Y
-
-								sink.AddBezier(&d2d.D2D1_BEZIER_SEGMENT{
-									Point1: p1,
-									Point2: p2,
-									Point3: point})
-								if r.logger != nil {
-									lineBuf.WriteString(fmt.Sprintf("C:%v, ", prePoint))
-								}
-							}
-						}
-					case "h", "H":
-						for _, svgPoint := range c.Points {
-							point := d2d.D2D1_POINT_2F{
-								X: svgPoint.X,
-								Y: prePoint.Y,
-							}
-
-							if c.Command == "h" {
-								point.X += prePoint.X
-							}
-							prePoint = point
-							preP1 = point
-
-							sink.AddLine(point)
-							if r.logger != nil {
-								lineBuf.WriteString(fmt.Sprintf("H:%v, ", prePoint))
-							}
-						}
-					case "v", "V":
-						for _, svgPoint := range c.Points {
-							point := d2d.D2D1_POINT_2F{
-								X: prePoint.X,
-								Y: svgPoint.Y,
-							}
-
-							if c.Command == "v" {
-								point.Y += prePoint.Y
-							}
-							prePoint = point
-							preP1 = point
-
-							sink.AddLine(point)
-							if r.logger != nil {
-								lineBuf.WriteString(fmt.Sprintf("V:%v, ", prePoint))
-							}
-						}
-					case "z", "Z":
-						sink.EndFigure(d2d.D2D1_FIGURE_END_CLOSED)
-						if r.logger != nil {
-							lineBuf.WriteString("close")
-						}
-						if i != len(p.D[1:])-1 {
-							panic(fmt.Errorf("Not implemented: %s", c.Command))
-						}
-					default:
-						panic(fmt.Errorf("Unknown: %s", c.Command))
+			}
+		case "c", "C":
+			for j, svgPoint := range c.Points {
+				if j%3 == 2 {
+					p1 := d2d.D2D1_POINT_2F{
+						X: c.Points[j-2].X,
+						Y: c.Points[j-2].Y,
 					}
-					pre = c
-				}
-				// no Z = open
-				if pre.Command != "z" && pre.Command != "Z" {
-					sink.EndFigure(d2d.D2D1_FIGURE_END_OPEN)
+					p2 := d2d.D2D1_POINT_2F{
+						X: c.Points[j-1].X,
+						Y: c.Points[j-1].Y,
+					}
+					point := d2d.D2D1_POINT_2F{
+						X: svgPoint.X,
+						Y: svgPoint.Y,
+					}
+
+					if c.Command == "c" {
+						p1.X += prePoint.X
+						p1.Y += prePoint.Y
+						p2.X += prePoint.X
+						p2.Y += prePoint.Y
+						point.X += prePoint.X
+						point.Y += prePoint.Y
+					}
+					prePoint = point
+					preP1.X = -(p2.X - point.X) + point.X
+					preP1.Y = -(p2.Y - point.Y) + point.Y
+
+					sink.AddBezier(&d2d.D2D1_BEZIER_SEGMENT{
+						Point1: p1,
+						Point2: p2,
+						Point3: point})
 					if r.logger != nil {
-						lineBuf.WriteString("open")
+						lineBuf.WriteString(fmt.Sprintf("C:%v, ", prePoint))
 					}
 				}
+			}
+		case "h", "H":
+			for _, svgPoint := range c.Points {
+				point := d2d.D2D1_POINT_2F{
+					X: svgPoint.X,
+					Y: prePoint.Y,
+				}
 
-				sink.Close()
+				if c.Command == "h" {
+					point.X += prePoint.X
+				}
+				prePoint = point
+				preP1 = point
+
+				sink.AddLine(point)
 				if r.logger != nil {
-					r.logger.Print(lineBuf.String())
+					lineBuf.WriteString(fmt.Sprintf("H:%v, ", prePoint))
 				}
-				ps = append(ps, &(path.ID2D1Geometry))
+			}
+		case "v", "V":
+			for _, svgPoint := range c.Points {
+				point := d2d.D2D1_POINT_2F{
+					X: prePoint.X,
+					Y: svgPoint.Y,
+				}
+
+				if c.Command == "v" {
+					point.Y += prePoint.Y
+				}
+				prePoint = point
+				preP1 = point
+
+				sink.AddLine(point)
+				if r.logger != nil {
+					lineBuf.WriteString(fmt.Sprintf("V:%v, ", prePoint))
+				}
+			}
+		case "z", "Z":
+			sink.EndFigure(d2d.D2D1_FIGURE_END_CLOSED)
+			if r.logger != nil {
+				lineBuf.WriteString("close")
+			}
+			if i != len(svgPath.D[1:])-1 {
+				panic(fmt.Errorf("Not implemented: %s", c.Command))
+			}
+		default:
+			panic(fmt.Errorf("Unknown: %s", c.Command))
+		}
+		pre = c
+	}
+	// no Z = open
+	if pre.Command != "z" && pre.Command != "Z" {
+		sink.EndFigure(d2d.D2D1_FIGURE_END_OPEN)
+		if r.logger != nil {
+			lineBuf.WriteString("open")
+		}
+	}
+
+	sink.Close()
+	sink.Release()
+	if r.logger != nil {
+		r.logger.Print(lineBuf.String())
+	}
+
+	return &(path.ID2D1Geometry), nil
+}
+
+func (r *svgRenderer) convertSVG2Geometry(svg *svg.Root) (geometryGroup *d2d.ID2D1GeometryGroup, err error) {
+	if svg == nil {
+		return nil, fmt.Errorf("no SVG")
+	}
+
+	gs := make([]*d2d.ID2D1Geometry, 0, len(svg.Groups))
+	for _, g := range svg.Groups {
+		ggs := make([]*d2d.ID2D1Geometry, 0, len(g.Groups))
+		for _, gg := range g.Groups {
+			ps := make([]*d2d.ID2D1Geometry, 0, len(gg.Paths))
+			for _, p := range gg.Paths {
+				path, err := r.createPath(p)
+				if err != nil {
+					panic(err)
+				}
+				ps = append(ps, path)
 			}
 			group, err := r.factory.CreateGeometryGroup(
 				d2d.D2D1_FILL_MODE_WINDING,
@@ -483,6 +494,11 @@ func (r *svgRenderer) createDeviceIndependentResources() (err error) {
 			if err != nil {
 				panic(err)
 			}
+
+			for _, p := range ps {
+				p.Release()
+			}
+
 			ggs = append(ggs, &(group.ID2D1Geometry))
 		}
 		group, err := r.factory.CreateGeometryGroup(
@@ -492,14 +508,24 @@ func (r *svgRenderer) createDeviceIndependentResources() (err error) {
 		if err != nil {
 			panic(err)
 		}
+
+		for _, gg := range ggs {
+			gg.Release()
+		}
+
 		gs = append(gs, &(group.ID2D1Geometry))
 	}
-	r.geometryGroup, err = r.factory.CreateGeometryGroup(
+
+	geometryGroup, err = r.factory.CreateGeometryGroup(
 		d2d.D2D1_FILL_MODE_WINDING,
 		gs,
 	)
 	if err != nil {
 		panic(err)
+	}
+
+	for _, g := range gs {
+		g.Release()
 	}
 
 	return
