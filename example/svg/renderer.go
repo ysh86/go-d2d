@@ -184,6 +184,10 @@ func (r *svgRenderer) Draw(nativeWindow uintptr) error {
 			panic(err)
 		}
 		defer strokeBrush.Release()
+		r.renderTarget.FillGeometry(
+			&(r.geometryGroup.ID2D1Geometry),
+			r.lightSlateGrayBrush,
+			nil)
 		r.renderTarget.DrawGeometry(
 			&(r.geometryGroup.ID2D1Geometry),
 			&(strokeBrush.ID2D1Brush),
