@@ -1,0 +1,6 @@
+github.com/ysh86/gui v0.0.0-20200819033131-e9ceffbd24da h1:iLHQ/96FHnBtShLCCWZnzJsv0yXxc7XVIZjg/B1AEvY=
+github.com/ysh86/gui v0.0.0-20200819033131-e9ceffbd24da/go.mod h1:MJIbK2SB1i+laPXZE1nZcXQT3nZzHYVx5pS9p9l0wHM=
+github.com/ysh86/svg v0.0.0-20200819034243-e916893f2f0f h1:tVbf3zjaeWQD2R3JW8FUCjb/xcxicOaLM7JQFNDVxiw=
+github.com/ysh86/svg v0.0.0-20200819034243-e916893f2f0f/go.mod h1:PISYc1RvnLkJmuERQnbrYh7pdP9N1RgTRbypcfkjcKE=
+golang.org/x/sys v0.0.0-20200817155316-9781c653f443 h1:X18bCaipMcoJGm27Nv7zr4XYPKGUy92GtqboKC2Hxaw=
+golang.org/x/sys v0.0.0-20200817155316-9781c653f443/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
